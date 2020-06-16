@@ -24,6 +24,7 @@
 
 /* Use high resolution file timestamps if nonzero. */
 #define FILE_TIMESTAMP_HI_RES 0
+#define FILE_TIMESTAMP time_t
 
 /* Define to 1 if the `getloadavg' function needs to be run setuid or setgid.
    */
