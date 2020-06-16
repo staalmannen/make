@@ -107,12 +107,22 @@ static const char *default_include_directories[] =
    This is defined as a placeholder.  */
 # define INCLUDEDIR "."
 #endif
+#if defined(PLAN9)
+	#define INCLUDEDIR "."
+	INCLUDEDIR,
+	"/sys/include/ape",
+	"/$objtype/include/ape",
+	"/sys/include/gnu",
+#endif
+#ifndef PLAN9
     INCLUDEDIR,
 #ifndef _AMIGA
     "/usr/gnu/include",
     "/usr/local/include",
     "/usr/include",
 #endif
+#endif
+
     0
   };
 

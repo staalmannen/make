@@ -1600,9 +1600,14 @@ library_search (const char *lib, FILE_TIMESTAMP *mtime_ptr)
 {
   static const char *dirs[] =
     {
+#ifndef PLAN9
 #ifndef _AMIGA
       "/lib",
       "/usr/lib",
+#endif
+#endif
+#if defined(PLAN9)
+	#define LIBDIR "/$objtype/lib/ape"
 #endif
 #if defined(WINDOWS32) && !defined(LIBDIR)
 /*
