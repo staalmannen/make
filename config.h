@@ -322,7 +322,7 @@
 /* #undef NO_MINUS_C_MINUS_O */
 
 /* Name of package */
-#define PACKAGE "make"
+#define PACKAGE "gmake"
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT "bug-make@gnu.org"
@@ -331,13 +331,13 @@
 #define PACKAGE_NAME "GNU make"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "GNU make 3.82"
+#define PACKAGE_STRING "GNU make 4.3"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gmake"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "3.82"
+#define PACKAGE_VERSION "4.3"
 
 /* Define to 1 if the C compiler supports function prototypes. */
 #define PROTOTYPES 1
@@ -387,7 +387,7 @@
 /* #undef UMAX4_3 */
 
 /* Version number of package */
-#define VERSION "3.82"
+#define VERSION "4.3"
 
 /* Use platform specific coding */
 /* #undef WINDOWS32 */
@@ -439,7 +439,7 @@
 /* Define as `fork' if `vfork' does not work. */
 #define vfork fork
 
-
+#define HAVE_UMASK 1
 
 /****** Plan 9 ********/
 /* #define _BSD_EXTENSION
