@@ -18,6 +18,7 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* find a_pattern a_word argvp */
 
+#include "makeinit.h"
 #include "gnumake.h"
 #include "filedef.h"
 #include "variable.h"
