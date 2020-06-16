@@ -974,7 +974,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   pattail = &pathead;
   while ((p = find_next_token (&pat_iterator, &len)) != 0)
     {
-      struct a_pattern *pat = alloca (sizeof (struct a_pattern));
+      struct a_pattern *pat = (struct a_pattern *) alloca (sizeof (struct a_pattern));
 
       *pattail = pat;
       pattail = &pat->next;
@@ -998,7 +998,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   wordtail = &wordhead;
   while ((p = find_next_token (&word_iterator, &len)) != 0)
     {
-      struct a_word *word = alloca (sizeof (struct a_word));
+      struct a_word *word = (struct a_word *) alloca (sizeof (struct a_word));
 
       *wordtail = word;
       wordtail = &word->next;
@@ -2486,7 +2486,7 @@ handle_function (char **op, const char **stringp)
   *stringp = end;
 
   /* Get some memory to store the arg pointers.  */
-  argvp = argv = alloca (sizeof (char *) * (nargs + 2));
+  argvp = argv = (char **) alloca (sizeof (char *) * (nargs + 2));
 
   /* Chop the string into arguments, then a nul.  As soon as we hit
      MAXIMUM_ARGS (if it's >0) assume the rest of the string is part of the
