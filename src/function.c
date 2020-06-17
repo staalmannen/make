@@ -30,12 +30,17 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 struct function_table_entry
   {
+    union {
+      char *(*func_ptr) (char *output, char **argv, const char *fname);
+      gmk_func_ptr alloc_func_ptr;
+    } fptr;
     const char *name;
     unsigned char len;
     unsigned char minimum_args;
     unsigned char maximum_args;
     char expand_args;
     char *(*func_ptr) (char *output, char **argv, const char *fname);
+    unsigned int alloc_fn:1;
   };
 
 static unsigned long
@@ -970,7 +975,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   pattail = &pathead;
   while ((p = find_next_token (&pat_iterator, &len)) != 0)
     {
-      struct a_pattern *pat = alloca (sizeof (struct a_pattern));
+      struct a_pattern *pat = (struct a_pattern *) alloca (sizeof (struct a_pattern));
 
       *pattail = pat;
       pattail = &pat->next;
@@ -994,7 +999,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   wordtail = &wordhead;
   while ((p = find_next_token (&word_iterator, &len)) != 0)
     {
-      struct a_word *word = alloca (sizeof (struct a_word));
+      struct a_word *word = (struct a_word *) alloca (sizeof (struct a_word));
 
       *wordtail = word;
       wordtail = &word->next;
