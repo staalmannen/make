@@ -428,7 +428,7 @@ static const struct command_switch switches[] =
       "include-dir" },
     { 'j', positive_int, &job_slots, 1, 1, 0, &inf_jobs, &default_job_slots,
       "jobs" },
-    { CHAR_MAX+2, string, &jobserver_fds, 1, 1, 0, 0, 0, "jobserver-fds" },
+    { CHAR_MAX+2, string, &jobserver_auth, 1, 1, 0, 0, 0, "jobserver-auth" },
     { 'k', flag, &keep_going_flag, 1, 1, 0, 0, &default_keep_going_flag,
       "keep-going" },
 #ifndef NO_FLOAT
@@ -452,11 +452,10 @@ static const struct command_switch switches[] =
       "no-keep-going" },
     { 't', flag, &touch_flag, 1, 1, 1, 0, 0, "touch" },
     { 'v', flag, &print_version_flag, 1, 1, 0, 0, 0, "version" },
-    { CHAR_MAX+3, string, &verbosity_flags, 1, 1, 0, 0, 0,
-      "verbosity" },
+    { CHAR_MAX+3, flag, &trace_flag, 1, 1, 0, 0, 0, "trace" },
     { 'w', flag, &print_directory_flag, 1, 1, 0, 0, 0, "print-directory" },
-    { CHAR_MAX+4, flag, &inhibit_print_directory_flag, 1, 1, 0, 0, 0,
-      "no-print-directory" },
+    { CHAR_MAX+4, flag_off, &print_directory_flag, 1, 1, 0, 0,
+      &default_print_directory_flag, "no-print-directory" },
     { 'W', filename, &new_files, 0, 0, 0, 0, 0, "what-if" },
     { CHAR_MAX+5, flag, &warn_undefined_variables_flag, 1, 1, 0, 0, 0,
       "warn-undefined-variables" },
@@ -2192,7 +2191,7 @@ main (int argc, char **argv, char **envp)
         for (d = read_files; d != NULL; d = d->next)
           ++num_mkfiles;
 
-        makefile_mtimes = alloca (num_mkfiles * sizeof (FILE_TIMESTAMP));
+        makefile_mtimes = (FILE_TIMESTAMP *) alloca (num_mkfiles * sizeof (FILE_TIMESTAMP));
       }
 
       /* Remove any makefiles we don't want to try to update.  Record the
@@ -2656,7 +2655,7 @@ init_switches (void)
           break;
 
         case string:
-        case strlist:
+//        case strlist:
         case filename:
         case positive_int:
         case floating:
@@ -2877,7 +2876,7 @@ decode_switches (int argc, const char **argv, int env)
                   break;
 
                 case string:
-                case strlist:
+//                case strlist:
                 case filename:
                   if (!doit)
                     break;
@@ -3038,7 +3037,7 @@ decode_env_switches (const char *envar, size_t len)
     return;
 
   /* Allocate a vector that is definitely big enough.  */
-  argv = alloca ((1 + len + 1) * sizeof (char *));
+  argv = (const char **) alloca ((1 + len + 1) * sizeof (char *));
 
   /* getopt will look at the arguments starting at ARGV[1].
      Prepend a spacer word.  */
@@ -3131,7 +3130,7 @@ define_makeflags (int all, int makefile)
   size_t flagslen = 0;
 #define ADD_FLAG(ARG, LEN) \
   do {                                                                        \
-    struct flag *new = alloca (sizeof (struct flag));                         \
+    struct flag *new = (struct flag *) alloca (sizeof (struct flag));                         \
     new->cs = cs;                                                             \
     new->arg = (ARG);                                                         \
     new->next = 0;                                                            \
@@ -3216,7 +3215,7 @@ define_makeflags (int all, int makefile)
           break;
 
         case filename:
-        case strlist:
+/*        case strlist:
           if (all)
             {
               struct stringlist *sl = *(struct stringlist **) cs->value_ptr;
@@ -3228,6 +3227,7 @@ define_makeflags (int all, int makefile)
                 }
             }
           break;
+*/
 
         default:
           abort ();
