@@ -3155,7 +3155,7 @@ define_makeflags (int all, int makefile)
   struct flag
     {
       struct flag *next;
-      const struct command_switch_old *cs;
+      const struct command_switch *cs;
       const char *arg;
     };
   struct flag *flags = 0;
@@ -3183,7 +3183,7 @@ define_makeflags (int all, int makefile)
       flagslen += 2 + strlen (cs->long_name);                                 \
   } while (0)
 
-  for (cs = switches; cs->c != '\0'; ++cs)
+  for (cs = (command_switch *) switches; cs->c != '\0'; ++cs)
     if (cs->toenv && (!makefile || !cs->no_makefile))
       switch (cs->type)
         {
