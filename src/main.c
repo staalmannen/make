@@ -1553,14 +1553,15 @@ main (int argc, char **argv, char **envp)
 
 	    /* Make sure the temporary file will not be remade.  */
             {
-              struct file *f = enter_file (strcache_add (stdin_nm));
-              f->updated = 1;
-              f->update_status = us_success;
-              f->command_state = cs_finished;
-              /* Can't be intermediate, or it'll be removed too early for
-                 make re-exec.  */
-              f->intermediate = 0;
-              f->dontcare = 0;
+            const char **p;
+            for (p = old_files->list; *p != 0; ++p)
+                {
+                struct file *f = enter_file (*p);
+                f->last_mtime = f->mtime_before_update = OLD_MTIME;
+                f->updated = 1;
+                f->update_status = us_success;
+                f->command_state = cs_finished;
+                }
             }
 	  }
     }
@@ -1885,7 +1886,7 @@ main (int argc, char **argv, char **envp)
       char **nargv;
       int nargc;
       int orig_db_level = db_level;
-      enum update_status status;
+      int status;
 
       if (! ISDB (DB_MAKEFILES))
         db_level = DB_NONE;
