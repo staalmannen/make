@@ -970,7 +970,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   pattail = &pathead;
   while ((p = find_next_token (&pat_iterator, &len)) != 0)
     {
-      struct a_pattern *pat = alloca (sizeof (struct a_pattern));
+      struct a_pattern *pat = (struct a_pattern *) alloca (sizeof (struct a_pattern));
 
       *pattail = pat;
       pattail = &pat->next;
@@ -994,7 +994,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   wordtail = &wordhead;
   while ((p = find_next_token (&word_iterator, &len)) != 0)
     {
-      struct a_word *word = alloca (sizeof (struct a_word));
+      struct a_word *word = (struct a_word *) alloca (sizeof (struct a_word));
 
       *wordtail = word;
       wordtail = &word->next;
@@ -2391,7 +2391,7 @@ expand_builtin_function (char *o, int argc, char **argv,
                          const struct function_table_entry *entry_p)
 {
   if (argc < (int)entry_p->minimum_args)
-    fatal (*expanding_var,
+    OS (fatal, *expanding_var,
            _("insufficient number of arguments (%d) to function `%s'"),
            argc, entry_p->name);
 
@@ -2403,7 +2403,7 @@ expand_builtin_function (char *o, int argc, char **argv,
     return o;
 
   if (!entry_p->func_ptr)
-    fatal (*expanding_var,
+    OS (fatal, *expanding_var,
            _("unimplemented on this platform: function `%s'"), entry_p->name);
 
   return entry_p->func_ptr (o, argv, entry_p->name);
