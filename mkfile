@@ -33,7 +33,8 @@ vpath.$O \
 fnmatch.$O \
 glob.$O \
 alloca.$O \
-posixos.$O
+posixos.$O \
+remote-stub.$O
 
 HFILES= \
 commands.h \
