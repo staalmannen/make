@@ -2391,7 +2391,7 @@ expand_builtin_function (char *o, int argc, char **argv,
                          const struct function_table_entry *entry_p)
 {
   if (argc < (int)entry_p->minimum_args)
-    O (fatal, *expanding_var,
+    OSS (fatal, *expanding_var,
            _("insufficient number of arguments (%d) to function `%s'"),
            argc, entry_p->name);
 
