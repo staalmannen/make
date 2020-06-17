@@ -2221,7 +2221,7 @@ main (int argc, char **argv, char **envp)
         for (d = read_files; d != NULL; d = d->next)
           ++num_mkfiles;
 
-        makefile_mtimes = alloca (num_mkfiles * sizeof (FILE_TIMESTAMP));
+        makefile_mtimes = (FILE_TIMESTAMP *) alloca (num_mkfiles * sizeof (FILE_TIMESTAMP));
       }
 
       /* Remove any makefiles we don't want to try to update.  Record the
@@ -2848,7 +2848,7 @@ static void
 decode_switches (int argc, const char **argv, int env)
 {
   int bad = 0;
-  const struct command_switch *cs;
+  const struct command_switch_old *cs;
   struct stringlist *sl;
   int c;
 
@@ -3067,7 +3067,7 @@ decode_env_switches (const char *envar, size_t len)
     return;
 
   /* Allocate a vector that is definitely big enough.  */
-  argv = alloca ((1 + len + 1) * sizeof (char *));
+  argv = (char **) alloca ((1 + len + 1) * sizeof (char *));
 
   /* getopt will look at the arguments starting at ARGV[1].
      Prepend a spacer word.  */
@@ -3160,7 +3160,7 @@ define_makeflags (int all, int makefile)
   size_t flagslen = 0;
 #define ADD_FLAG(ARG, LEN) \
   do {                                                                        \
-    struct flag *new = alloca (sizeof (struct flag));                         \
+    struct flag *new = (struct flag *) alloca (sizeof (struct flag));                         \
     new->cs = cs;                                                             \
     new->arg = (ARG);                                                         \
     new->next = 0;                                                            \
