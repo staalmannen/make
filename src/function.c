@@ -78,7 +78,7 @@ static struct hash_table function_table;
 
 char *
 subst_expand (char *o, const char *text, const char *subst, const char *replace,
-              unsigned int slen, unsigned int rlen, int by_word)
+              unsigned long slen, unsigned long rlen, int by_word)
 {
   const char *t = text;
   const char *p;
@@ -151,7 +151,7 @@ patsubst_expand_pat (char *o, const char *text,
   unsigned int pattern_prepercent_len, pattern_postpercent_len;
   unsigned int replace_prepercent_len, replace_postpercent_len;
   const char *t;
-  unsigned int len;
+  size_t len;
   int doneany = 0;
 
   /* Record the length of REPLACE before and after the % so we don't have to
@@ -295,7 +295,7 @@ pattern_matches (const char *pattern, const char *percent, const char *str)
 
   if (percent == 0)
     {
-      unsigned int len = strlen (pattern) + 1;
+      size_t len = strlen (pattern) + 1;
       char *new_chars = alloca (len);
       memcpy (new_chars, pattern, len);
       percent = find_percent (new_chars);
@@ -354,7 +354,7 @@ static char *
 string_glob (char *line)
 {
   static char *result = 0;
-  static unsigned int length;
+  static size_t length;
   struct nameseq *chain;
   unsigned int idx;
 
@@ -374,7 +374,7 @@ string_glob (char *line)
   while (chain != 0)
     {
       struct nameseq *next = chain->next;
-      unsigned int len = strlen (chain->name);
+      size_t len = strlen (chain->name);
 
       if (idx + len + 1 > length)
         {
@@ -427,7 +427,7 @@ func_join (char *o, char **argv, const char *funcname UNUSED)
   const char *list2_iterator = argv[1];
   do
     {
-      unsigned int len1, len2;
+      size_t len1, len2;
 
       tp = find_next_token (&list1_iterator, &len1);
       if (tp != 0)
@@ -526,7 +526,7 @@ func_notdir_suffix (char *o, char **argv, const char *funcname)
   const char *list_iterator = argv[0];
   const char *p2;
   int doneany =0;
-  unsigned int len=0;
+  size_t len=0;
 
   int is_suffix = streq (funcname, "suffix");
   int is_notdir = !is_suffix;
@@ -583,7 +583,7 @@ func_basename_dir (char *o, char **argv, const char *funcname)
   const char *p3 = argv[0];
   const char *p2;
   int doneany=0;
-  unsigned int len=0;
+  size_t len=0;
 
   int is_basename= streq (funcname, "basename");
   int is_dir= !is_basename;
@@ -642,7 +642,7 @@ func_addsuffix_addprefix (char *o, char **argv, const char *funcname)
 
   int doneany = 0;
   const char *p;
-  unsigned int len;
+  size_t len;
 
   while ((p = find_next_token (&list_iterator, &len)) != 0)
     {
@@ -838,7 +838,7 @@ func_foreach (char *o, char **argv, const char *funcname UNUSED)
   int doneany = 0;
   const char *list_iterator = list;
   const char *p;
-  unsigned int len;
+  size_t len;
   struct variable *var;
 
   push_new_variable_scope ();
@@ -929,7 +929,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   int words = 0;
   int hashing = 0;
   char *p;
-  unsigned int len;
+  size_t len;
 
   /* Chop ARGV[0] up into patterns to match against the words.  */
 
@@ -1133,7 +1133,7 @@ func_sort (char *o, char **argv, const char *funcname UNUSED)
   char **words;
   int wordi;
   char *p;
-  unsigned int len;
+  size_t len;
   int i;
 
   /* Find the maximum number of words we'll have.  */
@@ -1369,7 +1369,7 @@ static char *
 func_eval (char *o, char **argv, const char *funcname UNUSED)
 {
   char *buf;
-  unsigned int len;
+  size_t len;
 
   /* Eval the buffer.  Pop the current variable buffer setting so that the
      eval'd code can use its own without conflicting.  */
@@ -2012,7 +2012,7 @@ func_realpath (char *o, char **argv, const char *funcname UNUSED)
   const char *p = argv[0];
   const char *path = 0;
   int doneany = 0;
-  unsigned int len = 0;
+  size_t len = 0;
 #ifndef HAVE_REALPATH
   struct stat st;
 #endif
@@ -2055,7 +2055,7 @@ func_abspath (char *o, char **argv, const char *funcname UNUSED)
   const char *p = argv[0];
   const char *path = 0;
   int doneany = 0;
-  unsigned int len = 0;
+  size_t len = 0;
   PATH_VAR (in);
   PATH_VAR (out);
 
