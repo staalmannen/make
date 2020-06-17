@@ -1885,7 +1885,7 @@ main (int argc, char **argv, char **envp)
       char **nargv;
       int nargc;
       int orig_db_level = db_level;
-      int status;
+      enum update_status status;
 
       if (! ISDB (DB_MAKEFILES))
         db_level = DB_NONE;
@@ -2041,7 +2041,7 @@ main (int argc, char **argv, char **envp)
 	  if (print_data_base_flag)
 	    print_data_base ();
 
-	  (void) log_working_directory (0);
+          log_working_directory (0);
 
           clean_jobserver (0);
 
@@ -3138,35 +3138,14 @@ clean_jobserver (int status)
   if (master_job_slots)
     {
       /* We didn't write one for ourself, so start at 1.  */
-      unsigned int tcnt = 1;
+      unsigned int tokens = 1 + jobserver_acquire_all ();
 
-      /* Close the write side, so the read() won't hang.  */
-      close (job_fds[1]);
-
-      while (read (job_fds[0], &token, 1) == 1)
-        ++tcnt;
-
-      if (tcnt != master_job_slots)
-      /* We didn't write one for ourself, so start at 1.  */
-        unsigned int tokens = 1 + jobserver_acquire_all ();
-      
+      if (tokens != master_job_slots)
         ONN (error, NILF,
              "INTERNAL: Exiting with %u jobserver tokens available; should be %u!",
              tokens, master_job_slots);
 
-      close (job_fds[0]);
-
-      /* Clean out jobserver_fds so we don't pass this information to any
-         sub-makes.  Also reset job_slots since it will be put on the command
-         line, not in MAKEFLAGS.  */
-      job_slots = default_job_slots;
-      if (jobserver_fds)
-        {
-          /* MSVC erroneously warns without a cast here.  */
-          free ((void *)jobserver_fds->list);
-          free (jobserver_fds);
-          jobserver_fds = 0;
-        }
+      reset_jobserver ();
     }
 }
 
@@ -3222,56 +3201,4 @@ die (int status)
   exit (status);
 }
 
-/* Write a message indicating that we've just entered or
-   left (according to ENTERING) the current directory.  */
 
-void
-log_working_directory (int entering)
-{
-  static int entered = 0;
-
-  /* Print nothing without the flag.  Don't print the entering message
-     again if we already have.  Don't print the leaving message if we
-     haven't printed the entering message.  */
-  if (! print_directory_flag || entering == entered)
-    return;
-
-  entered = entering;
-
-  if (print_data_base_flag)
-    fputs ("# ", stdout);
-
-  /* Use entire sentences to give the translators a fighting chance.  */
-
-  if (makelevel == 0)
-    if (starting_directory == 0)
-      if (entering)
-        printf (_("%s: Entering an unknown directory\n"), program);
-      else
-        printf (_("%s: Leaving an unknown directory\n"), program);
-    else
-      if (entering)
-        printf (_("%s: Entering directory `%s'\n"),
-                program, starting_directory);
-      else
-        printf (_("%s: Leaving directory `%s'\n"),
-                program, starting_directory);
-  else
-    if (starting_directory == 0)
-      if (entering)
-        printf (_("%s[%u]: Entering an unknown directory\n"),
-                program, makelevel);
-      else
-        printf (_("%s[%u]: Leaving an unknown directory\n"),
-                program, makelevel);
-    else
-      if (entering)
-        printf (_("%s[%u]: Entering directory `%s'\n"),
-                program, makelevel, starting_directory);
-      else
-        printf (_("%s[%u]: Leaving directory `%s'\n"),
-                program, makelevel, starting_directory);
-
-  /* Flush stdout to be sure this comes before any stderr output.  */
-  fflush (stdout);
-}
