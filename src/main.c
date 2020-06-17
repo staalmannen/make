@@ -564,7 +564,7 @@ expand_command_line_file (char *name)
   char *expanded = 0;
 
   if (name[0] == '\0')
-    fatal (NILF, _("empty string invalid as file name"));
+    O (fatal, NILF, _("empty string invalid as file name"));
 
   if (name[0] == '~')
     {
@@ -650,7 +650,8 @@ decode_debug_flags (void)
               db_level |= DB_BASIC | DB_VERBOSE;
               break;
             default:
-              fatal (NILF, _("unknown debug level specification `%s'"), p);
+              OS (fatal, NILF,
+                    _("unknown debug level specification '%s'"), p);
             }
 
           while (*(++p) != '\0')
@@ -951,10 +952,6 @@ main (int argc, char **argv, char **envp)
     else
       stack_limit.rlim_cur = 0;
   }
-#endif
-
-#ifdef HAVE_ATEXIT
-  atexit (close_stdout);
 #endif
 
   /* Needed for OS/2 */
@@ -1501,7 +1498,8 @@ main (int argc, char **argv, char **envp)
             char *template, *tmpdir;
 
             if (stdin_nm)
-              fatal (NILF, _("Makefile from standard input specified twice."));
+              O (fatal, NILF,
+                 _("Makefile from standard input specified twice."));
 
 #ifdef VMS
 # define DEFAULT_TMPDIR     "sys$scratch:"
@@ -1557,7 +1555,7 @@ main (int argc, char **argv, char **envp)
             {
               struct file *f = enter_file (strcache_add (stdin_nm));
               f->updated = 1;
-              f->update_status = 0;
+              f->update_status = us_success;
               f->command_state = cs_finished;
               /* Can't be intermediate, or it'll be removed too early for
                  make re-exec.  */
@@ -1639,7 +1637,7 @@ main (int argc, char **argv, char **envp)
         {
           p = xstrdup (eval_strings->list[i]);
           len += 2 * strlen (p);
-          eval_buffer (p);
+          eval_buffer (p, NULL);
           free (p);
         }
 
@@ -1659,7 +1657,7 @@ main (int argc, char **argv, char **envp)
   /* Read all the makefiles.  */
 
   read_makefiles
-    = read_all_makefiles (makefiles == 0 ? 0 : makefiles->list);
+    = (struct dep *) read_all_makefiles (makefiles == 0 ? 0 : makefiles->list);
 
 #ifdef WINDOWS32
   /* look one last time after reading all Makefiles */
@@ -1812,7 +1810,7 @@ main (int argc, char **argv, char **envp)
 #ifndef MAKE_SYMLINKS
   if (check_symlink_flag)
     {
-      error (NILF, _("Symbolic links not supported: disabling -L."));
+      O (error, NILF, _("Symbolic links not supported: disabling -L."));
       check_symlink_flag = 0;
     }
 #endif
@@ -1860,7 +1858,7 @@ main (int argc, char **argv, char **envp)
           struct file *f = enter_file (*p);
           f->last_mtime = f->mtime_before_update = OLD_MTIME;
           f->updated = 1;
-          f->update_status = 0;
+          f->update_status = us_success;
           f->command_state = cs_finished;
         }
     }
@@ -1985,7 +1983,7 @@ main (int argc, char **argv, char **envp)
                 if (d->file->updated)
                   {
                     /* This makefile was updated.  */
-                    if (d->file->update_status == 0)
+                    if (d->file->update_status == us_success)
                       {
                         /* It was successfully updated.  */
                         any_remade |= (file_mtime_no_search (d->file)
