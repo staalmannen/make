@@ -1147,6 +1147,9 @@ main (int argc, char **argv, char **envp)
   setlocale (LC_ALL, "");
   /* The cast to void shuts up compiler warnings on systems that
      disable NLS.  */
+#ifndef LOCALEDIR
+#define LOCALEDIR NULL
+#endif
   (void)bindtextdomain (PACKAGE, LOCALEDIR);
   (void)textdomain (PACKAGE);
 
@@ -3152,7 +3155,7 @@ define_makeflags (int all, int makefile)
   struct flag
     {
       struct flag *next;
-      const struct command_switch *cs;
+      const struct command_switch_old *cs;
       const char *arg;
     };
   struct flag *flags = 0;

@@ -131,6 +131,8 @@
 /* Define to 1 if you have the <locale.h> header file. */
 #define HAVE_LOCALE_H 1
 
+#define LOCALEDIR ""
+
 /* Define to 1 if you have the `lstat' function. */
 #define HAVE_LSTAT 1
 
