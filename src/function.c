@@ -1,7 +1,5 @@
 /* Builtin function expansion for GNU Make.
-Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-2010 Free Software Foundation, Inc.
+Copyright (C) 1988-2020 Free Software Foundation, Inc.
 This file is part of GNU Make.
 
 GNU Make is free software; you can redistribute it and/or modify it under the
@@ -16,14 +14,12 @@ A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-/* find a_pattern a_word argvp */
-
 #include "makeint.h"
-#include "gnumake.h"
 #include "filedef.h"
 #include "variable.h"
 #include "dep.h"
 #include "job.h"
+#include "os.h"
 #include "commands.h"
 #include "debug.h"
 
@@ -148,8 +144,8 @@ patsubst_expand_pat (char *o, const char *text,
                      const char *pattern, const char *replace,
                      const char *pattern_percent, const char *replace_percent)
 {
-  unsigned int pattern_prepercent_len, pattern_postpercent_len;
-  unsigned int replace_prepercent_len, replace_postpercent_len;
+  size_t pattern_prepercent_len, pattern_postpercent_len;
+  size_t replace_prepercent_len, replace_postpercent_len;
   const char *t;
   size_t len;
   int doneany = 0;
@@ -170,7 +166,7 @@ patsubst_expand_pat (char *o, const char *text,
   if (!pattern_percent)
     /* With no % in the pattern, this is just a simple substitution.  */
     return subst_expand (o, text, pattern, replace,
-			 strlen (pattern), strlen (replace), 1);
+                         strlen (pattern), strlen (replace), 1);
 
   /* Record the length of PATTERN before and after the %
      so we don't have to compute it more than once.  */
@@ -183,53 +179,53 @@ patsubst_expand_pat (char *o, const char *text,
 
       /* Is it big enough to match?  */
       if (len < pattern_prepercent_len + pattern_postpercent_len)
-	fail = 1;
+        fail = 1;
 
       /* Does the prefix match? */
       if (!fail && pattern_prepercent_len > 0
-	  && (*t != *pattern
-	      || t[pattern_prepercent_len - 1] != pattern_percent[-2]
-	      || !strneq (t + 1, pattern + 1, pattern_prepercent_len - 1)))
-	fail = 1;
+          && (*t != *pattern
+              || t[pattern_prepercent_len - 1] != pattern_percent[-2]
+              || !strneq (t + 1, pattern + 1, pattern_prepercent_len - 1)))
+        fail = 1;
 
       /* Does the suffix match? */
       if (!fail && pattern_postpercent_len > 0
-	  && (t[len - 1] != pattern_percent[pattern_postpercent_len - 1]
-	      || t[len - pattern_postpercent_len] != *pattern_percent
-	      || !strneq (&t[len - pattern_postpercent_len],
-			  pattern_percent, pattern_postpercent_len - 1)))
-	fail = 1;
+          && (t[len - 1] != pattern_percent[pattern_postpercent_len - 1]
+              || t[len - pattern_postpercent_len] != *pattern_percent
+              || !strneq (&t[len - pattern_postpercent_len],
+                          pattern_percent, pattern_postpercent_len - 1)))
+        fail = 1;
 
       if (fail)
-	/* It didn't match.  Output the string.  */
-	o = variable_buffer_output (o, t, len);
+        /* It didn't match.  Output the string.  */
+        o = variable_buffer_output (o, t, len);
       else
-	{
-	  /* It matched.  Output the replacement.  */
+        {
+          /* It matched.  Output the replacement.  */
 
-	  /* Output the part of the replacement before the %.  */
-	  o = variable_buffer_output (o, replace, replace_prepercent_len);
+          /* Output the part of the replacement before the %.  */
+          o = variable_buffer_output (o, replace, replace_prepercent_len);
 
-	  if (replace_percent != 0)
-	    {
-	      /* Output the part of the matched string that
-		 matched the % in the pattern.  */
-	      o = variable_buffer_output (o, t + pattern_prepercent_len,
-					  len - (pattern_prepercent_len
-						 + pattern_postpercent_len));
-	      /* Output the part of the replacement after the %.  */
-	      o = variable_buffer_output (o, replace_percent,
-					  replace_postpercent_len);
-	    }
-	}
+          if (replace_percent != 0)
+            {
+              /* Output the part of the matched string that
+                 matched the % in the pattern.  */
+              o = variable_buffer_output (o, t + pattern_prepercent_len,
+                                          len - (pattern_prepercent_len
+                                                 + pattern_postpercent_len));
+              /* Output the part of the replacement after the %.  */
+              o = variable_buffer_output (o, replace_percent,
+                                          replace_postpercent_len);
+            }
+        }
 
       /* Output a space, but not if the replacement is "".  */
       if (fail || replace_prepercent_len > 0
-	  || (replace_percent != 0 && len + replace_postpercent_len > 0))
-	{
-	  o = variable_buffer_output (o, " ", 1);
-	  doneany = 1;
-	}
+          || (replace_percent != 0 && len + replace_postpercent_len > 0))
+        {
+          o = variable_buffer_output (o, " ", 1);
+          doneany = 1;
+        }
     }
   if (doneany)
     /* Kill the last space.  */
@@ -291,7 +287,7 @@ lookup_function (const char *s)
 int
 pattern_matches (const char *pattern, const char *percent, const char *str)
 {
-  unsigned int sfxlen, strlength;
+  size_t sfxlen, strlength;
 
   if (percent == 0)
     {
@@ -300,7 +296,7 @@ pattern_matches (const char *pattern, const char *percent, const char *str)
       memcpy (new_chars, pattern, len);
       percent = find_percent (new_chars);
       if (percent == 0)
-	return streq (new_chars, str);
+        return streq (new_chars, str);
       pattern = new_chars;
     }
 
@@ -329,14 +325,17 @@ find_next_argument (char startparen, char endparen,
   int count = 0;
 
   for (; ptr < end; ++ptr)
-    if (*ptr == startparen)
+    if (!STOP_SET (*ptr, MAP_VARSEP|MAP_COMMA))
+      continue;
+
+    else if (*ptr == startparen)
       ++count;
 
     else if (*ptr == endparen)
       {
-	--count;
-	if (count < 0)
-	  return NULL;
+        --count;
+        if (count < 0)
+          return NULL;
       }
 
     else if (*ptr == ',' && !count)
@@ -356,10 +355,10 @@ string_glob (char *line)
   static char *result = 0;
   static size_t length;
   struct nameseq *chain;
-  unsigned int idx;
+  size_t idx;
 
-  chain = PARSE_FILE_SEQ (&line, struct nameseq, '\0', NULL,
-                          /* We do not want parse_file_seq to strip `./'s.
+  chain = PARSE_FILE_SEQ (&line, struct nameseq, MAP_NUL, NULL,
+                          /* We do not want parse_file_seq to strip './'s.
                              That would break examples like:
                              $(patsubst ./%.c,obj/%.o,$(wildcard ./?*.c)).  */
                           PARSEFS_NOSTRIP|PARSEFS_NOCACHE|PARSEFS_EXISTS);
@@ -431,17 +430,17 @@ func_join (char *o, char **argv, const char *funcname UNUSED)
 
       tp = find_next_token (&list1_iterator, &len1);
       if (tp != 0)
-	o = variable_buffer_output (o, tp, len1);
+        o = variable_buffer_output (o, tp, len1);
 
       pp = find_next_token (&list2_iterator, &len2);
       if (pp != 0)
-	o = variable_buffer_output (o, pp, len2);
+        o = variable_buffer_output (o, pp, len2);
 
       if (tp != 0 || pp != 0)
-	{
-	  o = variable_buffer_output (o, " ", 1);
-	  doneany = 1;
-	}
+        {
+          o = variable_buffer_output (o, " ", 1);
+          doneany = 1;
+        }
     }
   while (tp != 0 || pp != 0);
   if (doneany)
@@ -464,29 +463,29 @@ func_origin (char *o, char **argv, const char *funcname UNUSED)
       {
       default:
       case o_invalid:
-	abort ();
-	break;
+        abort ();
+        break;
       case o_default:
-	o = variable_buffer_output (o, "default", 7);
-	break;
+        o = variable_buffer_output (o, "default", 7);
+        break;
       case o_env:
-	o = variable_buffer_output (o, "environment", 11);
-	break;
+        o = variable_buffer_output (o, "environment", 11);
+        break;
       case o_file:
-	o = variable_buffer_output (o, "file", 4);
-	break;
+        o = variable_buffer_output (o, "file", 4);
+        break;
       case o_env_override:
-	o = variable_buffer_output (o, "environment override", 20);
-	break;
+        o = variable_buffer_output (o, "environment override", 20);
+        break;
       case o_command:
-	o = variable_buffer_output (o, "command line", 12);
-	break;
+        o = variable_buffer_output (o, "command line", 12);
+        break;
       case o_override:
-	o = variable_buffer_output (o, "override", 8);
-	break;
+        o = variable_buffer_output (o, "override", 8);
+        break;
       case o_automatic:
-	o = variable_buffer_output (o, "automatic", 9);
-	break;
+        o = variable_buffer_output (o, "automatic", 9);
+        break;
       }
 
   return o;
@@ -508,16 +507,6 @@ func_flavor (char *o, char **argv, const char *funcname UNUSED)
   return o;
 }
 
-#ifdef VMS
-# define IS_PATHSEP(c) ((c) == ']')
-#else
-# ifdef HAVE_DOS_PATHS
-#  define IS_PATHSEP(c) ((c) == '/' || (c) == '\\')
-# else
-#  define IS_PATHSEP(c) ((c) == '/')
-# endif
-#endif
-
 
 static char *
 func_notdir_suffix (char *o, char **argv, const char *funcname)
@@ -528,44 +517,63 @@ func_notdir_suffix (char *o, char **argv, const char *funcname)
   int doneany =0;
   size_t len=0;
 
-  int is_suffix = streq (funcname, "suffix");
+  int is_suffix = funcname[0] == 's';
   int is_notdir = !is_suffix;
+  int stop = MAP_DIRSEP | (is_suffix ? MAP_DOT : 0);
+#ifdef VMS
+  /* For VMS list_iterator points to a comma separated list. To use the common
+     [find_]next_token, create a local copy and replace the commas with
+     spaces. Obviously, there is a problem if there is a ',' in the VMS filename
+     (can only happen on ODS5), the same problem as with spaces in filenames,
+     which seems to be present in make on all platforms. */
+  char *vms_list_iterator = alloca(strlen(list_iterator) + 1);
+  int i;
+  for (i = 0; list_iterator[i]; i++)
+    if (list_iterator[i] == ',')
+      vms_list_iterator[i] = ' ';
+    else
+      vms_list_iterator[i] = list_iterator[i];
+  vms_list_iterator[i] = list_iterator[i];
+  while ((p2 = find_next_token((const char**) &vms_list_iterator, &len)) != 0)
+#else
   while ((p2 = find_next_token (&list_iterator, &len)) != 0)
+#endif
     {
-      const char *p = p2 + len;
+      const char *p = p2 + len - 1;
 
-
-      while (p >= p2 && (!is_suffix || *p != '.'))
-	{
-	  if (IS_PATHSEP (*p))
-	    break;
-	  --p;
-	}
+      while (p >= p2 && ! STOP_SET (*p, stop))
+        --p;
 
       if (p >= p2)
-	{
-	  if (is_notdir)
-	    ++p;
-	  else if (*p != '.')
-	    continue;
-	  o = variable_buffer_output (o, p, len - (p - p2));
-	}
+        {
+          if (is_notdir)
+            ++p;
+          else if (*p != '.')
+            continue;
+          o = variable_buffer_output (o, p, len - (p - p2));
+        }
 #ifdef HAVE_DOS_PATHS
       /* Handle the case of "d:foo/bar".  */
-      else if (streq (funcname, "notdir") && p2[0] && p2[1] == ':')
-	{
-	  p = p2 + 2;
-	  o = variable_buffer_output (o, p, len - (p - p2));
-	}
+      else if (is_notdir && p2[0] && p2[1] == ':')
+        {
+          p = p2 + 2;
+          o = variable_buffer_output (o, p, len - (p - p2));
+        }
 #endif
       else if (is_notdir)
-	o = variable_buffer_output (o, p2, len);
+        o = variable_buffer_output (o, p2, len);
 
       if (is_notdir || p >= p2)
-	{
-	  o = variable_buffer_output (o, " ", 1);
-	  doneany = 1;
-	}
+        {
+#ifdef VMS
+          if (vms_comma_separator)
+            o = variable_buffer_output (o, ",", 1);
+          else
+#endif
+          o = variable_buffer_output (o, " ", 1);
+
+          doneany = 1;
+        }
     }
 
   if (doneany)
@@ -582,21 +590,30 @@ func_basename_dir (char *o, char **argv, const char *funcname)
   /* Expand the argument.  */
   const char *p3 = argv[0];
   const char *p2;
-  int doneany=0;
-  size_t len=0;
+  int doneany = 0;
+  size_t len = 0;
 
-  int is_basename= streq (funcname, "basename");
-  int is_dir= !is_basename;
-
+  int is_basename = funcname[0] == 'b';
+  int is_dir = !is_basename;
+  int stop = MAP_DIRSEP | (is_basename ? MAP_DOT : 0) | MAP_NUL;
+#ifdef VMS
+  /* As in func_notdir_suffix ... */
+  char *vms_p3 = alloca (strlen(p3) + 1);
+  int i;
+  for (i = 0; p3[i]; i++)
+    if (p3[i] == ',')
+      vms_p3[i] = ' ';
+    else
+      vms_p3[i] = p3[i];
+  vms_p3[i] = p3[i];
+  while ((p2 = find_next_token((const char**) &vms_p3, &len)) != 0)
+#else
   while ((p2 = find_next_token (&p3, &len)) != 0)
+#endif
     {
-      const char *p = p2 + len;
-      while (p >= p2 && (!is_basename  || *p != '.'))
-        {
-          if (IS_PATHSEP (*p))
-            break;
-          --p;
-        }
+      const char *p = p2 + len - 1;
+      while (p >= p2 && ! STOP_SET (*p, stop))
+        --p;
 
       if (p >= p2 && (is_dir))
         o = variable_buffer_output (o, p2, ++p - p2);
@@ -609,7 +626,13 @@ func_basename_dir (char *o, char **argv, const char *funcname)
 #endif
       else if (is_dir)
 #ifdef VMS
-        o = variable_buffer_output (o, "[]", 2);
+        {
+          extern int vms_report_unix_paths;
+          if (vms_report_unix_paths)
+            o = variable_buffer_output (o, "./", 2);
+          else
+            o = variable_buffer_output (o, "[]", 2);
+        }
 #else
 #ifndef _AMIGA
       o = variable_buffer_output (o, "./", 2);
@@ -621,7 +644,13 @@ func_basename_dir (char *o, char **argv, const char *funcname)
         /* The entire name is the basename.  */
         o = variable_buffer_output (o, p2, len);
 
-      o = variable_buffer_output (o, " ", 1);
+#ifdef VMS
+      if (vms_comma_separator)
+        o = variable_buffer_output (o, ",", 1);
+      else
+#endif
+        o = variable_buffer_output (o, " ", 1);
+
       doneany = 1;
     }
 
@@ -635,9 +664,9 @@ func_basename_dir (char *o, char **argv, const char *funcname)
 static char *
 func_addsuffix_addprefix (char *o, char **argv, const char *funcname)
 {
-  int fixlen = strlen (argv[0]);
+  size_t fixlen = strlen (argv[0]);
   const char *list_iterator = argv[1];
-  int is_addprefix = streq (funcname, "addprefix");
+  int is_addprefix = funcname[3] == 'p';
   int is_addsuffix = !is_addprefix;
 
   int doneany = 0;
@@ -647,10 +676,10 @@ func_addsuffix_addprefix (char *o, char **argv, const char *funcname)
   while ((p = find_next_token (&list_iterator, &len)) != 0)
     {
       if (is_addprefix)
-	o = variable_buffer_output (o, argv[0], fixlen);
+        o = variable_buffer_output (o, argv[0], fixlen);
       o = variable_buffer_output (o, p, len);
       if (is_addsuffix)
-	o = variable_buffer_output (o, argv[0], fixlen);
+        o = variable_buffer_output (o, argv[0], fixlen);
       o = variable_buffer_output (o, " ", 1);
       doneany = 1;
     }
@@ -666,7 +695,7 @@ static char *
 func_subst (char *o, char **argv, const char *funcname UNUSED)
 {
   o = subst_expand (o, argv[2], argv[0], argv[1], strlen (argv[0]),
-		    strlen (argv[1]), 0);
+                    strlen (argv[1]), 0);
 
   return o;
 }
@@ -693,7 +722,7 @@ func_lastword (char *o, char **argv, const char *funcname UNUSED)
   const char *p = NULL;
   const char *t;
 
-  while ((t = find_next_token (&words, &i)))
+  while ((t = find_next_token (&words, &i)) != NULL)
     p = t;
 
   if (p != 0)
@@ -705,11 +734,11 @@ func_lastword (char *o, char **argv, const char *funcname UNUSED)
 static char *
 func_words (char *o, char **argv, const char *funcname UNUSED)
 {
-  size_t i = 0;
+  int i = 0;
   const char *word_iterator = argv[0];
   char buf[20];
 
-  while (find_next_token (&word_iterator, (size_t *) 0) != 0)
+  while (find_next_token (&word_iterator, NULL) != 0)
     ++i;
 
   sprintf (buf, "%d", i);
@@ -726,9 +755,9 @@ func_words (char *o, char **argv, const char *funcname UNUSED)
 char *
 strip_whitespace (const char **begpp, const char **endpp)
 {
-  while (*begpp <= *endpp && isspace ((unsigned char)**begpp))
+  while (*begpp <= *endpp && ISSPACE (**begpp))
     (*begpp) ++;
-  while (*endpp >= *begpp && isspace ((unsigned char)**endpp))
+  while (*endpp >= *begpp && ISSPACE (**endpp))
     (*endpp) --;
   return (char *)*begpp;
 }
@@ -741,7 +770,7 @@ check_numeric (const char *s, const char *msg)
   strip_whitespace (&s, &end);
 
   for (; s <= end; ++s)
-    if (!ISDIGIT (*s))  /* ISDIGIT only evals its arg once: see make.h.  */
+    if (!ISDIGIT (*s))  /* ISDIGIT only evals its arg once: see makeint.h.  */
       break;
 
   if (s <= end || end - beg < 0)
@@ -758,7 +787,7 @@ func_word (char *o, char **argv, const char *funcname UNUSED)
   int i;
 
   /* Check the first argument.  */
-  check_numeric (argv[0], _("non-numeric first argument to `word' function"));
+  check_numeric (argv[0], _("non-numeric first argument to 'word' function"));
   i = atoi (argv[0]);
 
   if (i == 0)
@@ -783,9 +812,9 @@ func_wordlist (char *o, char **argv, const char *funcname UNUSED)
 
   /* Check the arguments.  */
   check_numeric (argv[0],
-		 _("non-numeric first argument to `wordlist' function"));
+                 _("non-numeric first argument to 'wordlist' function"));
   check_numeric (argv[1],
-		 _("non-numeric second argument to `wordlist' function"));
+                 _("non-numeric second argument to 'wordlist' function"));
 
   start = atoi (argv[0]);
   if (start < 1)
@@ -841,8 +870,12 @@ func_foreach (char *o, char **argv, const char *funcname UNUSED)
   size_t len;
   struct variable *var;
 
+  /* Clean up the variable name by removing whitespace.  */
+  char *vp = next_token (varname);
+  end_of_token (vp)[0] = '\0';
+
   push_new_variable_scope ();
-  var = define_variable (varname, strlen (varname), "", o_automatic, 0);
+  var = define_variable (vp, strlen (vp), "", o_automatic, 0);
 
   /* loop through LIST,  put the value in VAR and expand BODY */
   while ((p = find_next_token (&list_iterator, &len)) != 0)
@@ -876,7 +909,7 @@ struct a_word
   struct a_word *next;
   struct a_word *chain;
   char *str;
-  int length;
+  size_t length;
   int matched;
 };
 
@@ -895,11 +928,11 @@ a_word_hash_2 (const void *key)
 static int
 a_word_hash_cmp (const void *x, const void *y)
 {
-  int result = ((struct a_word const *) x)->length - ((struct a_word const *) y)->length;
+  int result = (int) ((struct a_word const *) x)->length - ((struct a_word const *) y)->length;
   if (result)
     return result;
   return_STRING_COMPARE (((struct a_word const *) x)->str,
-			 ((struct a_word const *) y)->str);
+                         ((struct a_word const *) y)->str);
 }
 
 struct a_pattern
@@ -907,8 +940,7 @@ struct a_pattern
   struct a_pattern *next;
   char *str;
   char *percent;
-  int length;
-  int save_c;
+  size_t length;
 };
 
 static char *
@@ -922,7 +954,7 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   struct a_pattern *pp;
 
   struct hash_table a_word_table;
-  int is_filter = streq (funcname, "filter");
+  int is_filter = funcname[CSTRLEN ("filter")] == '\0';
   const char *pat_iterator = argv[0];
   const char *word_iterator = argv[1];
   int literals = 0;
@@ -931,27 +963,29 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   char *p;
   size_t len;
 
-  /* Chop ARGV[0] up into patterns to match against the words.  */
+  /* Chop ARGV[0] up into patterns to match against the words.
+     We don't need to preserve it because our caller frees all the
+     argument memory anyway.  */
 
   pattail = &pathead;
   while ((p = find_next_token (&pat_iterator, &len)) != 0)
     {
-  /* line reverted to 3.81 variant due to typedef conflict struct vs char*/
-      struct a_pattern *pat = (struct a_pattern *) alloca (sizeof (struct a_pattern));
-  /* below this line everything vanilla 3.82 */
+      struct a_pattern *pat = alloca (sizeof (struct a_pattern));
+
       *pattail = pat;
       pattail = &pat->next;
 
       if (*pat_iterator != '\0')
-	++pat_iterator;
+        ++pat_iterator;
 
       pat->str = p;
-      pat->length = len;
-      pat->save_c = p[len];
       p[len] = '\0';
       pat->percent = find_percent (p);
       if (pat->percent == 0)
-	literals++;
+        literals++;
+
+      /* find_percent() might shorten the string so LEN is wrong.  */
+      pat->length = strlen (pat->str);
     }
   *pattail = 0;
 
@@ -960,14 +994,13 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
   wordtail = &wordhead;
   while ((p = find_next_token (&word_iterator, &len)) != 0)
     {
-  /* line reverted to 3.81 version due to typedef conflict struct vs char */
-      struct a_word *word = (struct a_word *) alloca (sizeof (struct a_word));
-  /*everything vanilla 3.82 below this line*/
+      struct a_word *word = alloca (sizeof (struct a_word));
+
       *wordtail = word;
       wordtail = &word->next;
 
       if (*word_iterator != '\0')
-	++word_iterator;
+        ++word_iterator;
 
       p[len] = '\0';
       word->str = p;
@@ -985,11 +1018,11 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
       hash_init (&a_word_table, words, a_word_hash_1, a_word_hash_2,
                  a_word_hash_cmp);
       for (wp = wordhead; wp != 0; wp = wp->next)
-	{
-	  struct a_word *owp = hash_insert (&a_word_table, wp);
-	  if (owp)
-	    wp->chain = owp;
-	}
+        {
+          struct a_word *owp = hash_insert (&a_word_table, wp);
+          if (owp)
+            wp->chain = owp;
+        }
     }
 
   if (words)
@@ -998,44 +1031,41 @@ func_filter_filterout (char *o, char **argv, const char *funcname)
 
       /* Run each pattern through the words, killing words.  */
       for (pp = pathead; pp != 0; pp = pp->next)
-	{
-	  if (pp->percent)
-	    for (wp = wordhead; wp != 0; wp = wp->next)
-	      wp->matched |= pattern_matches (pp->str, pp->percent, wp->str);
-	  else if (hashing)
-	    {
-	      struct a_word a_word_key;
-	      a_word_key.str = pp->str;
-	      a_word_key.length = pp->length;
-	      wp = hash_find_item (&a_word_table, &a_word_key);
-	      while (wp)
-		{
-		  wp->matched |= 1;
-		  wp = wp->chain;
-		}
-	    }
-	  else
-	    for (wp = wordhead; wp != 0; wp = wp->next)
-	      wp->matched |= (wp->length == pp->length
-			      && strneq (pp->str, wp->str, wp->length));
-	}
+        {
+          if (pp->percent)
+            for (wp = wordhead; wp != 0; wp = wp->next)
+              wp->matched |= pattern_matches (pp->str, pp->percent, wp->str);
+          else if (hashing)
+            {
+              struct a_word a_word_key;
+              a_word_key.str = pp->str;
+              a_word_key.length = pp->length;
+              wp = hash_find_item (&a_word_table, &a_word_key);
+              while (wp)
+                {
+                  wp->matched |= 1;
+                  wp = wp->chain;
+                }
+            }
+          else
+            for (wp = wordhead; wp != 0; wp = wp->next)
+              wp->matched |= (wp->length == pp->length
+                              && strneq (pp->str, wp->str, wp->length));
+        }
 
       /* Output the words that matched (or didn't, for filter-out).  */
       for (wp = wordhead; wp != 0; wp = wp->next)
-	if (is_filter ? wp->matched : !wp->matched)
-	  {
-	    o = variable_buffer_output (o, wp->str, strlen (wp->str));
-	    o = variable_buffer_output (o, " ", 1);
-	    doneany = 1;
-	  }
+        if (is_filter ? wp->matched : !wp->matched)
+          {
+            o = variable_buffer_output (o, wp->str, strlen (wp->str));
+            o = variable_buffer_output (o, " ", 1);
+            doneany = 1;
+          }
 
       if (doneany)
-	/* Kill the last space.  */
-	--o;
+        /* Kill the last space.  */
+        --o;
     }
-
-  for (pp = pathead; pp != 0; pp = pp->next)
-    pp->str[pp->length] = pp->save_c;
 
   if (hashing)
     hash_free (&a_word_table, 0);
@@ -1055,13 +1085,12 @@ func_strip (char *o, char **argv, const char *funcname UNUSED)
       int i=0;
       const char *word_start;
 
-      while (isspace ((unsigned char)*p))
-	++p;
+      NEXT_TOKEN (p);
       word_start = p;
-      for (i=0; *p != '\0' && !isspace ((unsigned char)*p); ++p, ++i)
-	{}
+      for (i=0; *p != '\0' && !ISSPACE (*p); ++p, ++i)
+        {}
       if (!i)
-	break;
+        break;
       o = variable_buffer_output (o, word_start, i);
       o = variable_buffer_output (o, " ", 1);
       doneany = 1;
@@ -1082,7 +1111,7 @@ func_error (char *o, char **argv, const char *funcname)
 {
   char **argvp;
   char *msg, *p;
-  int len;
+  size_t len;
 
   /* The arguments will be broken on commas.  Rather than create yet
      another special case where function arguments aren't broken up,
@@ -1091,6 +1120,7 @@ func_error (char *o, char **argv, const char *funcname)
     len += strlen (*argvp) + 2;
 
   p = msg = alloca (len + 1);
+  msg[0] = '\0';
 
   for (argvp=argv; argvp[1] != 0; ++argvp)
     {
@@ -1101,7 +1131,8 @@ func_error (char *o, char **argv, const char *funcname)
     }
   strcpy (p, *argvp);
 
-  switch (*funcname) {
+  switch (*funcname)
+    {
     case 'e':
       OS (fatal, reading_file, "%s", msg);
 
@@ -1110,8 +1141,8 @@ func_error (char *o, char **argv, const char *funcname)
       break;
 
     case 'i':
-      printf ("%s\n", msg);
-      fflush(stdout);
+      outputs (0, msg);
+      outputs (0, "\n");
       break;
 
     default:
@@ -1134,25 +1165,17 @@ func_sort (char *o, char **argv, const char *funcname UNUSED)
   int wordi;
   char *p;
   size_t len;
-  int i;
 
   /* Find the maximum number of words we'll have.  */
   t = argv[0];
-  wordi = 1;
-  while (*t != '\0')
+  wordi = 0;
+  while ((p = find_next_token (&t, NULL)) != 0)
     {
-      char c = *(t++);
-
-      if (! isspace ((unsigned char)c))
-        continue;
-
+      ++t;
       ++wordi;
-
-      while (isspace ((unsigned char)*t))
-        ++t;
     }
 
-  words = xmalloc (wordi * sizeof (char *));
+  words = xmalloc ((wordi == 0 ? 1 : wordi) * sizeof (char *));
 
   /* Now assign pointers to each string in the array.  */
   t = argv[0];
@@ -1166,6 +1189,8 @@ func_sort (char *o, char **argv, const char *funcname UNUSED)
 
   if (wordi)
     {
+      int i;
+
       /* Now sort the list of words.  */
       qsort (words, wordi, sizeof (char *), alpha_compare);
 
@@ -1219,7 +1244,7 @@ func_if (char *o, char **argv, const char *funcname UNUSED)
     {
       char *expansion = expand_argument (begp, endp+1);
 
-      result = strlen (expansion);
+      result = expansion[0] != '\0';
       free (expansion);
     }
 
@@ -1263,7 +1288,7 @@ func_or (char *o, char **argv, const char *funcname UNUSED)
       const char *begp = *argv;
       const char *endp = begp + strlen (*argv) - 1;
       char *expansion;
-      int result = 0;
+      size_t result = 0;
 
       /* Find the result of the condition: if it's false keep going.  */
 
@@ -1309,12 +1334,12 @@ static char *
 func_and (char *o, char **argv, const char *funcname UNUSED)
 {
   char *expansion;
-  int result;
 
   while (1)
     {
       const char *begp = *argv;
       const char *endp = begp + strlen (*argv) - 1;
+      size_t result;
 
       /* An empty condition is always false.  */
       strip_whitespace (&begp, &endp);
@@ -1392,38 +1417,45 @@ func_value (char *o, char **argv, const char *funcname UNUSED)
 
   /* Copy its value into the output buffer without expanding it.  */
   if (v)
-    o = variable_buffer_output (o, v->value, strlen(v->value));
+    o = variable_buffer_output (o, v->value, strlen (v->value));
 
   return o;
 }
 
 /*
-  \r  is replaced on UNIX as well. Is this desirable?
+  \r is replaced on UNIX as well. Is this desirable?
  */
 static void
-fold_newlines (char *buffer, unsigned int *length)
+fold_newlines (char *buffer, size_t *length, int trim_newlines)
 {
   char *dst = buffer;
   char *src = buffer;
-  char *last_nonnl = buffer -1;
+  char *last_nonnl = buffer - 1;
   src[*length] = 0;
   for (; *src != '\0'; ++src)
     {
       if (src[0] == '\r' && src[1] == '\n')
-	continue;
+        continue;
       if (*src == '\n')
-	{
-	  *dst++ = ' ';
-	}
+        {
+          *dst++ = ' ';
+        }
       else
-	{
-	  last_nonnl = dst;
-	  *dst++ = *src;
-	}
+        {
+          last_nonnl = dst;
+          *dst++ = *src;
+        }
     }
+
+  if (!trim_newlines && (last_nonnl < (dst - 2)))
+    last_nonnl = dst - 2;
+
   *(++last_nonnl) = '\0';
   *length = last_nonnl - buffer;
 }
+
+pid_t shell_function_pid = 0;
+static int shell_function_completed;
 
 void
 shell_completed (int exit_code, int exit_sig)
@@ -1443,9 +1475,6 @@ shell_completed (int exit_code, int exit_sig)
   define_variable_cname (".SHELLSTATUS", buf, o_override, 0);
 }
 
-int shell_function_pid = 0, shell_function_completed;
-
-
 #ifdef WINDOWS32
 /*untested*/
 
@@ -1454,85 +1483,130 @@ int shell_function_pid = 0, shell_function_completed;
 #include "sub_proc.h"
 
 
-void
-windows32_openpipe (int *pipedes, pid_t *pid_p, char **command_argv, char **envp)
+int
+windows32_openpipe (int *pipedes, int errfd, pid_t *pid_p, char **command_argv, char **envp)
 {
   SECURITY_ATTRIBUTES saAttr;
-  HANDLE hIn;
-  HANDLE hErr;
+  HANDLE hIn = INVALID_HANDLE_VALUE;
+  HANDLE hErr = INVALID_HANDLE_VALUE;
   HANDLE hChildOutRd;
   HANDLE hChildOutWr;
-  HANDLE hProcess;
+  HANDLE hProcess, tmpIn, tmpErr;
+  DWORD e;
 
+  /* Set status for return.  */
+  pipedes[0] = pipedes[1] = -1;
+  *pid_p = (pid_t)-1;
 
   saAttr.nLength = sizeof (SECURITY_ATTRIBUTES);
   saAttr.bInheritHandle = TRUE;
   saAttr.lpSecurityDescriptor = NULL;
 
-  if (DuplicateHandle (GetCurrentProcess(),
-		      GetStdHandle(STD_INPUT_HANDLE),
-		      GetCurrentProcess(),
-		      &hIn,
-		      0,
-		      TRUE,
-		      DUPLICATE_SAME_ACCESS) == FALSE) {
-    fatal (NILF, _("windows32_openpipe(): DuplicateHandle(In) failed (e=%ld)\n"),
-	   GetLastError());
+  /* Standard handles returned by GetStdHandle can be NULL or
+     INVALID_HANDLE_VALUE if the parent process closed them.  If that
+     happens, we open the null device and pass its handle to
+     process_begin below as the corresponding handle to inherit.  */
+  tmpIn = GetStdHandle (STD_INPUT_HANDLE);
+  if (DuplicateHandle (GetCurrentProcess (), tmpIn,
+                       GetCurrentProcess (), &hIn,
+                       0, TRUE, DUPLICATE_SAME_ACCESS) == FALSE)
+    {
+      e = GetLastError ();
+      if (e == ERROR_INVALID_HANDLE)
+        {
+          tmpIn = CreateFile ("NUL", GENERIC_READ,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+          if (tmpIn != INVALID_HANDLE_VALUE
+              && DuplicateHandle (GetCurrentProcess (), tmpIn,
+                                  GetCurrentProcess (), &hIn,
+                                  0, TRUE, DUPLICATE_SAME_ACCESS) == FALSE)
+            CloseHandle (tmpIn);
+        }
+      if (hIn == INVALID_HANDLE_VALUE)
+        {
+          ON (error, NILF,
+              _("windows32_openpipe: DuplicateHandle(In) failed (e=%ld)\n"), e);
+          return -1;
+        }
+    }
+  tmpErr = (HANDLE)_get_osfhandle (errfd);
+  if (DuplicateHandle (GetCurrentProcess (), tmpErr,
+                       GetCurrentProcess (), &hErr,
+                       0, TRUE, DUPLICATE_SAME_ACCESS) == FALSE)
+    {
+      e = GetLastError ();
+      if (e == ERROR_INVALID_HANDLE)
+        {
+          tmpErr = CreateFile ("NUL", GENERIC_WRITE,
+                               FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+          if (tmpErr != INVALID_HANDLE_VALUE
+              && DuplicateHandle (GetCurrentProcess (), tmpErr,
+                                  GetCurrentProcess (), &hErr,
+                                  0, TRUE, DUPLICATE_SAME_ACCESS) == FALSE)
+            CloseHandle (tmpErr);
+        }
+      if (hErr == INVALID_HANDLE_VALUE)
+        {
+          ON (error, NILF,
+              _("windows32_openpipe: DuplicateHandle(Err) failed (e=%ld)\n"), e);
+          return -1;
+        }
+    }
 
-  }
-  if (DuplicateHandle(GetCurrentProcess(),
-		      GetStdHandle(STD_ERROR_HANDLE),
-		      GetCurrentProcess(),
-		      &hErr,
-		      0,
-		      TRUE,
-		      DUPLICATE_SAME_ACCESS) == FALSE) {
-    fatal (NILF, _("windows32_open_pipe(): DuplicateHandle(Err) failed (e=%ld)\n"),
-	   GetLastError());
-  }
+  if (! CreatePipe (&hChildOutRd, &hChildOutWr, &saAttr, 0))
+    {
+      ON (error, NILF, _("CreatePipe() failed (e=%ld)\n"), GetLastError());
+      return -1;
+    }
 
-  if (!CreatePipe(&hChildOutRd, &hChildOutWr, &saAttr, 0))
-    fatal (NILF, _("CreatePipe() failed (e=%ld)\n"), GetLastError());
-
-  hProcess = process_init_fd(hIn, hChildOutWr, hErr);
+  hProcess = process_init_fd (hIn, hChildOutWr, hErr);
 
   if (!hProcess)
-    fatal (NILF, _("windows32_openpipe(): process_init_fd() failed\n"));
+    {
+      O (error, NILF, _("windows32_openpipe(): process_init_fd() failed\n"));
+      return -1;
+    }
 
   /* make sure that CreateProcess() has Path it needs */
-  sync_Path_environment();
-  /* `sync_Path_environment' may realloc `environ', so take note of
+  sync_Path_environment ();
+  /* 'sync_Path_environment' may realloc 'environ', so take note of
      the new value.  */
   envp = environ;
 
-  if (!process_begin(hProcess, command_argv, envp, command_argv[0], NULL)) {
-    /* register process for wait */
-    process_register(hProcess);
+  if (! process_begin (hProcess, command_argv, envp, command_argv[0], NULL))
+    {
+      /* register process for wait */
+      process_register (hProcess);
 
-    /* set the pid for returning to caller */
-    *pid_p = (pid_t) hProcess;
+      /* set the pid for returning to caller */
+      *pid_p = (pid_t) hProcess;
 
-  /* set up to read data from child */
-  pipedes[0] = _open_osfhandle((intptr_t) hChildOutRd, O_RDONLY);
+      /* set up to read data from child */
+      pipedes[0] = _open_osfhandle ((intptr_t) hChildOutRd, O_RDONLY);
 
-  /* this will be closed almost right away */
-  pipedes[1] = _open_osfhandle((intptr_t) hChildOutWr, O_APPEND);
-  } else {
-    /* reap/cleanup the failed process */
-	process_cleanup(hProcess);
+      /* this will be closed almost right away */
+      pipedes[1] = _open_osfhandle ((intptr_t) hChildOutWr, O_APPEND);
+      return 0;
+    }
+  else
+    {
+      /* reap/cleanup the failed process */
+      process_cleanup (hProcess);
 
-    /* close handles which were duplicated, they weren't used */
-	CloseHandle(hIn);
-	CloseHandle(hErr);
+      /* close handles which were duplicated, they weren't used */
+      if (hIn != INVALID_HANDLE_VALUE)
+        CloseHandle (hIn);
+      if (hErr != INVALID_HANDLE_VALUE)
+        CloseHandle (hErr);
 
-	/* close pipe handles, they won't be used */
-	CloseHandle(hChildOutRd);
-	CloseHandle(hChildOutWr);
+      /* close pipe handles, they won't be used */
+      CloseHandle (hChildOutRd);
+      CloseHandle (hChildOutWr);
 
-    /* set status for return */
-    pipedes[0] = pipedes[1] = -1;
-    *pid_p = (pid_t)-1;
-  }
+      return -1;
+    }
 }
 #endif
 
@@ -1542,14 +1616,13 @@ FILE *
 msdos_openpipe (int* pipedes, int *pidp, char *text)
 {
   FILE *fpipe=0;
-  /* MSDOS can't fork, but it has `popen'.  */
+  /* MSDOS can't fork, but it has 'popen'.  */
   struct variable *sh = lookup_variable ("SHELL", 5);
   int e;
   extern int dos_command_running, dos_status;
 
   /* Make sure not to bother processing an empty line.  */
-  while (isblank ((unsigned char)*text))
-    ++text;
+  NEXT_TOKEN (text);
   if (*text == '\0')
     return 0;
 
@@ -1557,7 +1630,7 @@ msdos_openpipe (int* pipedes, int *pidp, char *text)
     {
       char buf[PATH_MAX + 7];
       /* This makes sure $SHELL value is used by $(shell), even
-	 though the target environment is not passed to it.  */
+         though the target environment is not passed to it.  */
       sprintf (buf, "SHELL=%s", sh->value);
       putenv (buf);
     }
@@ -1576,17 +1649,18 @@ msdos_openpipe (int* pipedes, int *pidp, char *text)
       pipedes[0] = -1;
       *pidp = -1;
       if (dos_status)
-	errno = EINTR;
+        errno = EINTR;
       else if (errno == 0)
-	errno = ENOMEM;
-      shell_function_completed = -1;
+        errno = ENOMEM;
+      if (fpipe)
+        pclose (fpipe);
+      shell_completed (127, 0);
     }
   else
     {
       pipedes[0] = fileno (fpipe);
       *pidp = 42; /* Yes, the Meaning of Life, the Universe, and Everything! */
       errno = e;
-      shell_function_completed = 1;
     }
   return fpipe;
 }
@@ -1599,11 +1673,20 @@ msdos_openpipe (int* pipedes, int *pidp, char *text)
 #ifdef VMS
 
 /* VMS can't do $(shell ...)  */
+
+char *
+func_shell_base (char *o, char **argv, int trim_newlines)
+{
+  fprintf (stderr, "This platform does not support shell\n");
+  die (MAKE_TROUBLE);
+  return NULL;
+}
+
 #define func_shell 0
 
 #else
 #ifndef _AMIGA
-
+char *
 func_shell_base (char *o, char **argv, int trim_newlines)
 {
   char *batch_filename = NULL;
@@ -1807,187 +1890,12 @@ func_shell_base (char *o, char **argv, int trim_newlines)
   return o;
 }
 
-static char *
-func_shell (char *o, char **argv, const char *funcname UNUSED)
-{
-  char *batch_filename = NULL;
-
-#ifdef __MSDOS__
-  FILE *fpipe;
-#endif
-  char **command_argv;
-  const char *error_prefix;
-  char **envp;
-  int pipedes[2];
-  pid_t pid;
-
-#ifndef __MSDOS__
-  /* Construct the argument list.  */
-  command_argv = construct_command_argv (argv[0], NULL, NULL, 0,
-                                         &batch_filename);
-  if (command_argv == 0)
-    return o;
-#endif
-
-  /* Using a target environment for `shell' loses in cases like:
-     export var = $(shell echo foobie)
-     because target_environment hits a loop trying to expand $(var)
-     to put it in the environment.  This is even more confusing when
-     var was not explicitly exported, but just appeared in the
-     calling environment.
-
-     See Savannah bug #10593.
-
-  envp = target_environment (NILF);
-  */
-
-  envp = environ;
-
-  /* For error messages.  */
-  if (reading_file && reading_file->filenm)
-    {
-      char *p = alloca (strlen (reading_file->filenm)+11+4);
-      sprintf (p, "%s:%lu: ", reading_file->filenm, reading_file->lineno);
-      error_prefix = p;
-    }
-  else
-    error_prefix = "";
-
-#if defined(__MSDOS__)
-  fpipe = msdos_openpipe (pipedes, &pid, argv[0]);
-  if (pipedes[0] < 0)
-    {
-      perror_with_name (error_prefix, "pipe");
-      return o;
-    }
-#elif defined(WINDOWS32)
-  windows32_openpipe (pipedes, &pid, command_argv, envp);
-  if (pipedes[0] < 0)
-    {
-      /* open of the pipe failed, mark as failed execution */
-      shell_function_completed = -1;
-
-      return o;
-    }
-  else
-#else
-  if (pipe (pipedes) < 0)
-    {
-      perror_with_name (error_prefix, "pipe");
-      return o;
-    }
-
-# ifdef __EMX__
-  /* close some handles that are unnecessary for the child process */
-  CLOSE_ON_EXEC(pipedes[1]);
-  CLOSE_ON_EXEC(pipedes[0]);
-  /* Never use fork()/exec() here! Use spawn() instead in exec_command() */
-  pid = child_execute_job (0, pipedes[1], command_argv, envp);
-  if (pid < 0)
-    perror_with_name (error_prefix, "spawn");
-# else /* ! __EMX__ */
-  pid = vfork ();
-  if (pid < 0)
-    perror_with_name (error_prefix, "fork");
-  else if (pid == 0)
-    child_execute_job (0, pipedes[1], command_argv);
-  else
-# endif
-#endif
-    {
-      /* We are the parent.  */
-      char *buffer;
-      unsigned int maxlen, i;
-      int cc;
-
-      /* Record the PID for reap_children.  */
-      shell_function_pid = pid;
-#ifndef  __MSDOS__
-      shell_function_completed = 0;
-
-      /* Free the storage only the child needed.  */
-      free (command_argv[0]);
-      free (command_argv);
-
-      /* Close the write side of the pipe.  We test for -1, since
-	 pipedes[1] is -1 on MS-Windows, and some versions of MS
-	 libraries barf when `close' is called with -1.  */
-      if (pipedes[1] >= 0)
-	close (pipedes[1]);
-#endif
-
-      /* Set up and read from the pipe.  */
-
-      maxlen = 200;
-      buffer = xmalloc (maxlen + 1);
-
-      /* Read from the pipe until it gets EOF.  */
-      for (i = 0; ; i += cc)
-	{
-	  if (i == maxlen)
-	    {
-	      maxlen += 512;
-	      buffer = xrealloc (buffer, maxlen + 1);
-	    }
-
-	  EINTRLOOP (cc, read (pipedes[0], &buffer[i], maxlen - i));
-	  if (cc <= 0)
-	    break;
-	}
-      buffer[i] = '\0';
-
-      /* Close the read side of the pipe.  */
-#ifdef  __MSDOS__
-      if (fpipe)
-	(void) pclose (fpipe);
-#else
-      (void) close (pipedes[0]);
-#endif
-
-      /* Loop until child_handler or reap_children()  sets
-         shell_function_completed to the status of our child shell.  */
-      while (shell_function_completed == 0)
-	reap_children (1, 0);
-
-      if (batch_filename) {
-	DB (DB_VERBOSE, (_("Cleaning up temporary batch file %s\n"),
-                       batch_filename));
-	remove (batch_filename);
-	free (batch_filename);
-      }
-      shell_function_pid = 0;
-
-      /* The child_handler function will set shell_function_completed
-	 to 1 when the child dies normally, or to -1 if it
-	 dies with status 127, which is most likely an exec fail.  */
-
-      if (shell_function_completed == -1)
-	{
-	  /* This likely means that the execvp failed, so we should just
-	     write the error message in the pipe from the child.  */
-	  fputs (buffer, stderr);
-	  fflush (stderr);
-	}
-      else
-	{
-	  /* The child finished normally.  Replace all newlines in its output
-	     with spaces, and put that in the variable output buffer.  */
-	  fold_newlines (buffer, &i);
-	  o = variable_buffer_output (o, buffer, i);
-	}
-
-      free (buffer);
-    }
-
-  return o;
-}
-
-#else	/* _AMIGA */
+#else   /* _AMIGA */
 
 /* Do the Amiga version of func_shell.  */
 
-static char *
-func_shell (char *o, char **argv, const char *funcname)
+char *
+func_shell_base (char *o, char **argv, int trim_newlines)
 {
   /* Amiga can't fork nor spawn, but I can start a program with
      redirection of my choice.  However, this means that we
@@ -2003,11 +1911,11 @@ func_shell (char *o, char **argv, const char *funcname)
 
   BPTR child_stdout;
   char tmp_output[FILENAME_MAX];
-  unsigned int maxlen = 200, i;
+  size_t maxlen = 200, i;
   int cc;
   char * buffer, * ptr;
   char ** aptr;
-  int len = 0;
+  size_t len = 0;
   char* batch_filename = NULL;
 
   /* Construct the argument list.  */
@@ -2017,9 +1925,8 @@ func_shell (char *o, char **argv, const char *funcname)
     return o;
 
   /* Note the mktemp() is a security hole, but this only runs on Amiga.
-     Ideally we would use main.c:open_tmpfile(), but this uses a special
-     Open(), not fopen(), and I'm not familiar enough with the code to mess
-     with it.  */
+     Ideally we would use get_tmpfile(), but this uses a special Open(), not
+     fopen(), and I'm not familiar enough with the code to mess with it.  */
   strcpy (tmp_output, "t:MakeshXXXXXXXX");
   mktemp (tmp_output);
   child_stdout = Open (tmp_output, MODE_NEWFILE);
@@ -2052,33 +1959,39 @@ func_shell (char *o, char **argv, const char *funcname)
   do
     {
       if (i == maxlen)
-	{
-	  maxlen += 512;
-	  buffer = xrealloc (buffer, maxlen + 1);
-	}
+        {
+          maxlen += 512;
+          buffer = xrealloc (buffer, maxlen + 1);
+        }
 
       cc = Read (child_stdout, &buffer[i], maxlen - i);
       if (cc > 0)
-	i += cc;
+        i += cc;
     } while (cc > 0);
 
   Close (child_stdout);
 
-  fold_newlines (buffer, &i);
+  fold_newlines (buffer, &i, trim_newlines);
   o = variable_buffer_output (o, buffer, i);
   free (buffer);
   return o;
 }
 #endif  /* _AMIGA */
+
+static char *
+func_shell (char *o, char **argv, const char *funcname UNUSED)
+{
+  return func_shell_base (o, argv, 1);
+}
 #endif  /* !VMS */
 
 #ifdef EXPERIMENTAL
 
 /*
-  equality. Return is string-boolean, ie, the empty string is false.
+  equality. Return is string-boolean, i.e., the empty string is false.
  */
 static char *
-func_eq (char *o, char **argv, char *funcname)
+func_eq (char *o, char **argv, char *funcname UNUSED)
 {
   int result = ! strcmp (argv[0], argv[1]);
   o = variable_buffer_output (o,  result ? "1" : "", result);
@@ -2090,12 +2003,11 @@ func_eq (char *o, char **argv, char *funcname)
   string-boolean not operator.
  */
 static char *
-func_not (char *o, char **argv, char *funcname)
+func_not (char *o, char **argv, char *funcname UNUSED)
 {
   const char *s = argv[0];
   int result = 0;
-  while (isspace ((unsigned char)*s))
-    s++;
+  NEXT_TOKEN (s);
   result = ! (*s);
   o = variable_buffer_output (o,  result ? "1" : "", result);
   return o;
@@ -2104,15 +2016,19 @@ func_not (char *o, char **argv, char *funcname)
 
 
 #ifdef HAVE_DOS_PATHS
-#define IS_ABSOLUTE(n) (n[0] && n[1] == ':')
-#define ROOT_LEN 3
+# ifdef __CYGWIN__
+#  define IS_ABSOLUTE(n) ((n[0] && n[1] == ':') || STOP_SET (n[0], MAP_DIRSEP))
+# else
+#  define IS_ABSOLUTE(n) (n[0] && n[1] == ':')
+# endif
+# define ROOT_LEN 3
 #else
-#define IS_ABSOLUTE(n) (n[0] == '/')
-#define ROOT_LEN 1
+# define IS_ABSOLUTE(n) (n[0] == '/')
+# define ROOT_LEN 1
 #endif
 
-/* Return the absolute name of file NAME which does not contain any `.',
-   `..' components nor any repeated path separators ('/').   */
+/* Return the absolute name of file NAME which does not contain any '.',
+   '..' components nor any repeated path separators ('/').   */
 
 static char *
 abspath (const char *name, char *apath)
@@ -2121,7 +2037,7 @@ abspath (const char *name, char *apath)
   const char *start, *end, *apath_limit;
   unsigned long root_len = ROOT_LEN;
 
-  if (name[0] == '\0' || apath == NULL)
+  if (name[0] == '\0')
     return NULL;
 
   apath_limit = apath + GET_PATH_MAX;
@@ -2130,93 +2046,98 @@ abspath (const char *name, char *apath)
     {
       /* It is unlikely we would make it until here but just to make sure. */
       if (!starting_directory)
-	return NULL;
+        return NULL;
 
       strcpy (apath, starting_directory);
 
 #ifdef HAVE_DOS_PATHS
-      if (IS_PATHSEP(name[0]))
-	{
-	  if (IS_PATHSEP(name[1]))
-	    {
-	      /* A UNC.  Don't prepend a drive letter.  */
-	      apath[0] = name[0];
-	      apath[1] = name[1];
-	      root_len = 2;
-	    }
-	  /* We have /foo, an absolute file name except for the drive
-	     letter.  Assume the missing drive letter is the current
-	     drive, which we can get if we remove from starting_directory
-	     everything past the root directory.  */
-	  apath[root_len] = '\0';
-	}
+      if (STOP_SET (name[0], MAP_DIRSEP))
+        {
+          if (STOP_SET (name[1], MAP_DIRSEP))
+            {
+              /* A UNC.  Don't prepend a drive letter.  */
+              apath[0] = name[0];
+              apath[1] = name[1];
+              root_len = 2;
+            }
+          /* We have /foo, an absolute file name except for the drive
+             letter.  Assume the missing drive letter is the current
+             drive, which we can get if we remove from starting_directory
+             everything past the root directory.  */
+          apath[root_len] = '\0';
+        }
 #endif
 
       dest = strchr (apath, '\0');
     }
   else
     {
-      strncpy (apath, name, root_len);
+#if defined(__CYGWIN__) && defined(HAVE_DOS_PATHS)
+      if (STOP_SET (name[0], MAP_DIRSEP))
+        root_len = 1;
+#endif
+      memcpy (apath, name, root_len);
       apath[root_len] = '\0';
       dest = apath + root_len;
       /* Get past the root, since we already copied it.  */
       name += root_len;
 #ifdef HAVE_DOS_PATHS
-      if (!IS_PATHSEP(apath[2]))
-	{
-	  /* Convert d:foo into d:./foo and increase root_len.  */
-	  apath[2] = '.';
-	  apath[3] = '/';
-	  dest++;
-	  root_len++;
-	  /* strncpy above copied one character too many.  */
-	  name--;
-	}
+      if (! STOP_SET (apath[root_len - 1], MAP_DIRSEP))
+        {
+          /* Convert d:foo into d:./foo and increase root_len.  */
+          apath[2] = '.';
+          apath[3] = '/';
+          dest++;
+          root_len++;
+          /* strncpy above copied one character too many.  */
+          name--;
+        }
       else
-	apath[2] = '/';	/* make sure it's a forward slash */
+        apath[root_len - 1] = '/'; /* make sure it's a forward slash */
 #endif
     }
 
   for (start = end = name; *start != '\0'; start = end)
     {
-      unsigned long len;
+      size_t len;
 
       /* Skip sequence of multiple path-separators.  */
-      while (IS_PATHSEP(*start))
-	++start;
+      while (STOP_SET (*start, MAP_DIRSEP))
+        ++start;
 
       /* Find end of path component.  */
-      for (end = start; *end != '\0' && !IS_PATHSEP(*end); ++end)
+      for (end = start; ! STOP_SET (*end, MAP_DIRSEP|MAP_NUL); ++end)
         ;
 
       len = end - start;
 
       if (len == 0)
-	break;
+        break;
       else if (len == 1 && start[0] == '.')
-	/* nothing */;
+        /* nothing */;
       else if (len == 2 && start[0] == '.' && start[1] == '.')
-	{
-	  /* Back up to previous component, ignore if at root already.  */
-	  if (dest > apath + root_len)
-	    for (--dest; !IS_PATHSEP(dest[-1]); --dest);
-	}
+        {
+          /* Back up to previous component, ignore if at root already.  */
+          if (dest > apath + root_len)
+            for (--dest; ! STOP_SET (dest[-1], MAP_DIRSEP); --dest)
+              ;
+        }
       else
-	{
-	  if (!IS_PATHSEP(dest[-1]))
+        {
+          if (! STOP_SET (dest[-1], MAP_DIRSEP))
             *dest++ = '/';
 
-	  if (dest + len >= apath_limit)
+          if (dest + len >= apath_limit)
             return NULL;
 
-	  dest = memcpy (dest, start, len);
+          dest = memcpy (dest, start, len);
           dest += len;
-	  *dest = '\0';
-	}
+          *dest = '\0';
+        }
     }
 
   /* Unless it is root strip trailing separator.  */
-  if (dest > apath + root_len && IS_PATHSEP(dest[-1]))
+  if (dest > apath + root_len && STOP_SET (dest[-1], MAP_DIRSEP))
     --dest;
 
   *dest = '\0';
@@ -2233,30 +2154,44 @@ func_realpath (char *o, char **argv, const char *funcname UNUSED)
   const char *path = 0;
   int doneany = 0;
   size_t len = 0;
-#ifndef HAVE_REALPATH
-  struct stat st;
-#endif
-  PATH_VAR (in);
-  PATH_VAR (out);
 
   while ((path = find_next_token (&p, &len)) != 0)
     {
       if (len < GET_PATH_MAX)
         {
+          char *rp;
+          struct stat st;
+          PATH_VAR (in);
+          PATH_VAR (out);
+
           strncpy (in, path, len);
           in[len] = '\0';
 
-          if (
 #ifdef HAVE_REALPATH
-              realpath (in, out)
-#else
-              abspath (in, out) && stat (out, &st) == 0
-#endif
-             )
+          ENULLLOOP (rp, realpath (in, out));
+# if defined _AIX
+          /* AIX realpath() doesn't remove trailing slashes correctly.  */
+          if (rp)
             {
-              o = variable_buffer_output (o, out, strlen (out));
-              o = variable_buffer_output (o, " ", 1);
-              doneany = 1;
+              char *ep = rp + strlen (rp) - 1;
+              while (ep > rp && ep[0] == '/')
+                *(ep--) = '\0';
+            }
+# endif
+#else
+          rp = abspath (in, out);
+#endif
+
+          if (rp)
+            {
+              int r;
+              EINTRLOOP (r, stat (out, &st));
+              if (r == 0)
+                {
+                  o = variable_buffer_output (o, out, strlen (out));
+                  o = variable_buffer_output (o, " ", 1);
+                  doneany = 1;
+                }
             }
         }
     }
@@ -2269,6 +2204,91 @@ func_realpath (char *o, char **argv, const char *funcname UNUSED)
 }
 
 static char *
+func_file (char *o, char **argv, const char *funcname UNUSED)
+{
+  char *fn = argv[0];
+
+  if (fn[0] == '>')
+    {
+      FILE *fp;
+      const char *mode = "w";
+
+      /* We are writing a file.  */
+      ++fn;
+      if (fn[0] == '>')
+        {
+          mode = "a";
+          ++fn;
+        }
+      NEXT_TOKEN (fn);
+
+      if (fn[0] == '\0')
+        O (fatal, *expanding_var, _("file: missing filename"));
+
+      ENULLLOOP (fp, fopen (fn, mode));
+      if (fp == NULL)
+        OSS (fatal, reading_file, _("open: %s: %s"), fn, strerror (errno));
+
+      if (argv[1])
+        {
+          size_t l = strlen (argv[1]);
+          int nl = l == 0 || argv[1][l-1] != '\n';
+
+          if (fputs (argv[1], fp) == EOF || (nl && fputc ('\n', fp) == EOF))
+            OSS (fatal, reading_file, _("write: %s: %s"), fn, strerror (errno));
+        }
+      if (fclose (fp))
+        OSS (fatal, reading_file, _("close: %s: %s"), fn, strerror (errno));
+    }
+  else if (fn[0] == '<')
+    {
+      char *preo = o;
+      FILE *fp;
+
+      ++fn;
+      NEXT_TOKEN (fn);
+      if (fn[0] == '\0')
+        O (fatal, *expanding_var, _("file: missing filename"));
+
+      if (argv[1])
+        O (fatal, *expanding_var, _("file: too many arguments"));
+
+      ENULLLOOP (fp, fopen (fn, "r"));
+      if (fp == NULL)
+        {
+          if (errno == ENOENT)
+            return o;
+          OSS (fatal, reading_file, _("open: %s: %s"), fn, strerror (errno));
+        }
+
+      while (1)
+        {
+          char buf[1024];
+          size_t l = fread (buf, 1, sizeof (buf), fp);
+          if (l > 0)
+            o = variable_buffer_output (o, buf, l);
+
+          if (ferror (fp))
+            if (errno != EINTR)
+              OSS (fatal, reading_file, _("read: %s: %s"), fn, strerror (errno));
+          if (feof (fp))
+            break;
+        }
+      if (fclose (fp))
+        OSS (fatal, reading_file, _("close: %s: %s"), fn, strerror (errno));
+
+      /* Remove trailing newline.  */
+      if (o > preo && o[-1] == '\n')
+        if (--o > preo && o[-1] == '\r')
+          --o;
+    }
+  else
+    OS (fatal, *expanding_var, _("file: invalid file operation: %s"), fn);
+
+  return o;
+}
+
+static char *
 func_abspath (char *o, char **argv, const char *funcname UNUSED)
 {
   /* Expand the argument.  */
@@ -2276,13 +2296,14 @@ func_abspath (char *o, char **argv, const char *funcname UNUSED)
   const char *path = 0;
   int doneany = 0;
   size_t len = 0;
-  PATH_VAR (in);
-  PATH_VAR (out);
 
   while ((path = find_next_token (&p, &len)) != 0)
     {
       if (len < GET_PATH_MAX)
         {
+          PATH_VAR (in);
+          PATH_VAR (out);
+
           strncpy (in, path, len);
           in[len] = '\0';
 
@@ -2315,7 +2336,6 @@ func_abspath (char *o, char **argv, const char *funcname UNUSED)
    Functions that do namespace tricks (foreach) don't automatically expand.  */
 
 static char *func_call (char *o, char **argv, const char *funcname);
-
 
 static struct function_table_entry function_table_init[] =
 {
@@ -2371,8 +2391,8 @@ expand_builtin_function (char *o, int argc, char **argv,
                          const struct function_table_entry *entry_p)
 {
   if (argc < (int)entry_p->minimum_args)
-    fatal (*expanding_var, strlen (entry_p->name),
-           _("insufficient number of arguments (%d) to function '%s'"),
+    fatal (*expanding_var,
+           _("insufficient number of arguments (%d) to function `%s'"),
            argc, entry_p->name);
 
   /* I suppose technically some function could do something with no
@@ -2383,8 +2403,8 @@ expand_builtin_function (char *o, int argc, char **argv,
     return o;
 
   if (!entry_p->func_ptr)
-    OS (fatal, *expanding_var,
-        _("unimplemented on this platform: function '%s'"), entry_p->name);
+    fatal (*expanding_var,
+           _("unimplemented on this platform: function `%s'"), entry_p->name);
 
   return entry_p->func_ptr (o, argv, entry_p->name);
 }
@@ -2417,7 +2437,8 @@ handle_function (char **op, const char **stringp)
   /* We found a builtin function.  Find the beginning of its arguments (skip
      whitespace after the name).  */
 
-  beg = next_token (beg + entry_p->len);
+  beg += entry_p->len;
+  NEXT_TOKEN (beg);
 
   /* Find the end of the function invocation, counting nested use of
      whichever kind of parens we use.  Since we're looking, count commas
@@ -2425,7 +2446,9 @@ handle_function (char **op, const char **stringp)
      count might be high, but it'll never be low.  */
 
   for (nargs=1, end=beg; *end != '\0'; ++end)
-    if (*end == ',')
+    if (!STOP_SET (*end, MAP_VARSEP|MAP_COMMA))
+      continue;
+    else if (*end == ',')
       ++nargs;
     else if (*end == openparen)
       ++count;
@@ -2440,9 +2463,7 @@ handle_function (char **op, const char **stringp)
   *stringp = end;
 
   /* Get some memory to store the arg pointers.  */
- /* line reverted to 3.81 due to ind ind char vs ind char conflict */
-  argvp = argv = (char **) alloca (sizeof (char *) * (nargs + 2));
- /* below this line everything vanilla 3.82 */
+  argvp = argv = alloca (sizeof (char *) * (nargs + 2));
 
   /* Chop the string into arguments, then a nul.  As soon as we hit
      MAXIMUM_ARGS (if it's >0) assume the rest of the string is part of the
@@ -2462,7 +2483,7 @@ handle_function (char **op, const char **stringp)
           ++nargs;
 
           if (nargs == entry_p->maximum_args
-              || (! (next = find_next_argument (openparen, closeparen, p, end))))
+              || ((next = find_next_argument (openparen, closeparen, p, end)) == NULL))
             next = end;
 
           *argvp = expand_argument (p, next);
@@ -2471,7 +2492,7 @@ handle_function (char **op, const char **stringp)
     }
   else
     {
-      int len = end - beg;
+      size_t len = end - beg;
       char *p, *aend;
 
       abeg = xmalloc (len+1);
@@ -2486,7 +2507,7 @@ handle_function (char **op, const char **stringp)
           ++nargs;
 
           if (nargs == entry_p->maximum_args
-              || (! (next = find_next_argument (openparen, closeparen, p, aend))))
+              || ((next = find_next_argument (openparen, closeparen, p, aend)) == NULL))
             next = aend;
 
           *argvp = p;
@@ -2503,7 +2524,7 @@ handle_function (char **op, const char **stringp)
   if (entry_p->expand_args)
     for (argvp=argv; *argvp != 0; ++argvp)
       free (*argvp);
-  if (abeg)
+  else
     free (abeg);
 
   return 1;
@@ -2519,24 +2540,16 @@ func_call (char *o, char **argv, const char *funcname UNUSED)
 {
   static int max_args = 0;
   char *fname;
-  char *cp;
   char *body;
-  int flen;
+  size_t flen;
   int i;
   int saved_args;
   const struct function_table_entry *entry_p;
   struct variable *v;
 
-  /* There is no way to define a variable with a space in the name, so strip
-     leading and trailing whitespace as a favor to the user.  */
-  fname = argv[0];
-  while (*fname != '\0' && isspace ((unsigned char)*fname))
-    ++fname;
-
-  cp = fname + strlen (fname) - 1;
-  while (cp > fname && isspace ((unsigned char)*cp))
-    --cp;
-  cp[1] = '\0';
+  /* Clean up the name of the variable to be invoked.  */
+  fname = next_token (argv[0]);
+  end_of_token (fname)[0] = '\0';
 
   /* Calling nothing is a no-op */
   if (*fname == '\0')
@@ -2646,8 +2659,8 @@ define_new_function (const floc *flocp, const char *name,
   ent->minimum_args = (unsigned char) min;
   ent->maximum_args = (unsigned char) max;
   ent->expand_args = ANY_SET(flags, GMK_FUNC_NOEXPAND) ? 0 : 1;
-  ent->alloc_fn = 1;
-  ent->fptr.alloc_func_ptr = func;
+//  ent->alloc_fn = 1;
+//  ent->fptr.alloc_func_ptr = func;
 
   hash_insert (&function_table, ent);
 }
@@ -2656,8 +2669,8 @@ void
 hash_init_function_table (void)
 {
   hash_init (&function_table, FUNCTION_TABLE_ENTRIES * 2,
-	     function_table_entry_hash_1, function_table_entry_hash_2,
-	     function_table_entry_hash_cmp);
+             function_table_entry_hash_1, function_table_entry_hash_2,
+             function_table_entry_hash_cmp);
   hash_load (&function_table, function_table_init,
-	     FUNCTION_TABLE_ENTRIES, sizeof (struct function_table_entry));
+             FUNCTION_TABLE_ENTRIES, sizeof (struct function_table_entry));
 }
