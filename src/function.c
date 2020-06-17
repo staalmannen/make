@@ -2391,9 +2391,8 @@ expand_builtin_function (char *o, int argc, char **argv,
                          const struct function_table_entry *entry_p)
 {
   if (argc < (int)entry_p->minimum_args)
-    OSN (fatal, *expanding_var,
-           _("insufficient number of arguments (%d) to function `%s'"),
-           argc, entry_p->name);
+    OS (fatal, *expanding_var,
+           _("insufficient number of arguments (%d) to function `%s'"), entry_p->name);
 
   /* I suppose technically some function could do something with no
      arguments, but so far none do, so just test it for all functions here
