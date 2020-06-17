@@ -2391,7 +2391,7 @@ expand_builtin_function (char *o, int argc, char **argv,
                          const struct function_table_entry *entry_p)
 {
   if (argc < (int)entry_p->minimum_args)
-    OS (fatal, *expanding_var,
+    O (fatal, *expanding_var,
            _("insufficient number of arguments (%d) to function `%s'"),
            argc, entry_p->name);
 
@@ -2463,7 +2463,7 @@ handle_function (char **op, const char **stringp)
   *stringp = end;
 
   /* Get some memory to store the arg pointers.  */
-  argvp = argv = alloca (sizeof (char *) * (nargs + 2));
+  argvp = argv = (char **) alloca (sizeof (char *) * (nargs + 2));
 
   /* Chop the string into arguments, then a nul.  As soon as we hit
      MAXIMUM_ARGS (if it's >0) assume the rest of the string is part of the
