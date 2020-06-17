@@ -2305,8 +2305,8 @@ main (int argc, char **argv, char **envp)
 
     /* If we detected some clock skew, generate one last warning */
     if (clock_skew_detected)
-      error (NILF,
-             _("warning:  Clock skew detected.  Your build may be incomplete."));
+      O (error, NILF,
+         _("warning:  Clock skew detected.  Your build may be incomplete."));
 
     /* Exit.  */
     die (status);
@@ -2562,7 +2562,8 @@ decode_switches (int argc, char **argv, int env)
                       else
                         op = cs->long_name;
 
-                      error (NILF, _("the `%s%s' option requires a non-empty string argument"),
+                      error (NILF, strlen (op),
+                             _("the '%s%s' option requires a non-empty string argument"),
                              short_option (cs->c) ? "-" : "--", op);
                       bad = 1;
                     }
@@ -2617,7 +2618,8 @@ decode_switches (int argc, char **argv, int env)
 
 		      if (i < 1 || cp[0] != '\0')
 			{
-                          error (NILF, _("the `-%c' option requires a positive integral argument"),
+                          error (NILF, 0,
+                                 _("the '-%c' option requires a positive integer argument"),
                                  cs->c);
 			  bad = 1;
 			}
@@ -3116,9 +3118,9 @@ clean_jobserver (int status)
   if (job_fds[0] != -1 && jobserver_tokens)
     {
       if (status != 2)
-        error (NILF,
-               "INTERNAL: Exiting with %u jobserver tokens (should be 0)!",
-               jobserver_tokens);
+        ON (error, NILF,
+            "INTERNAL: Exiting with %u jobserver tokens (should be 0)!",
+            jobserver_tokens);
       else
         while (jobserver_tokens--)
           {
@@ -3145,9 +3147,9 @@ clean_jobserver (int status)
         ++tcnt;
 
       if (tcnt != master_job_slots)
-        error (NILF,
-               "INTERNAL: Exiting with %u jobserver tokens available; should be %u!",
-               tcnt, master_job_slots);
+        ONN (error, NILF,
+             "INTERNAL: Exiting with %u jobserver tokens available; should be %u!",
+             tokens, master_job_slots);
 
       close (job_fds[0]);
 
