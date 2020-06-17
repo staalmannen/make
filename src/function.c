@@ -705,11 +705,11 @@ func_lastword (char *o, char **argv, const char *funcname UNUSED)
 static char *
 func_words (char *o, char **argv, const char *funcname UNUSED)
 {
-  int i = 0;
+  size_t i = 0;
   const char *word_iterator = argv[0];
   char buf[20];
 
-  while (find_next_token (&word_iterator, (size_t) 0) != 0)
+  while (find_next_token (&word_iterator, (size_t *) 0) != 0)
     ++i;
 
   sprintf (buf, "%d", i);
