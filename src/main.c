@@ -115,6 +115,34 @@ static void initialize_global_hash_tables (void);
 
 struct command_switch
   {
+    int c;                      /* The switch character.  */
+
+    enum                        /* Type of the value.  */
+      {
+        flag,                   /* Turn int flag on.  */
+        flag_off,               /* Turn int flag off.  */
+        string,                 /* One string per invocation.  */
+        strlist,                /* One string per switch.  */
+        filename,               /* A string containing a file name.  */
+        positive_int,           /* A positive integer.  */
+        floating,               /* A floating-point number (double).  */
+        ignore                  /* Ignored.  */
+      } type;
+
+    void *value_ptr;    /* Pointer to the value-holding variable.  */
+
+    unsigned int env:1;         /* Can come from MAKEFLAGS.  */
+    unsigned int toenv:1;       /* Should be put in MAKEFLAGS.  */
+    unsigned int no_makefile:1; /* Don't propagate when remaking makefiles.  */
+
+    const void *noarg_value;    /* Pointer to value used if no arg given.  */
+    const void *default_value;  /* Pointer to default value.  */
+
+    const char *long_name;      /* Long option name.  */
+  };
+
+struct command_switch_old
+  {
     int c;			/* The switch character.  */
 
     enum			/* Type of the value.  */
@@ -410,7 +438,7 @@ static const char *const usage[] =
    Order matters here: this is the order MAKEFLAGS will be constructed.
    So be sure all simple flags (single char, no argument) come first.  */
 
-static const struct command_switch switches[] =
+static const struct command_switch_old switches[] =
   {
     { 'b', ignore, 0, 0, 0, 0, 0, 0, 0 },
     { 'B', flag, &always_make_set, 1, 1, 0, 0, 0, "always-make" },
