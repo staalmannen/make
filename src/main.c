@@ -21,9 +21,9 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "makeint.h"
 #include "gnumake.h"
 #include "dep.h"
+#define OLD_UPDATE_STATUS 1
 #include "filedef.h"
-#undef update_status
-short int update_status;
+#undef OLD_UPDATE_STATUS
 #include "variable.h"
 #include "job.h"
 #include "commands.h"
