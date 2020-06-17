@@ -34,7 +34,8 @@ fnmatch.$O \
 glob.$O \
 alloca.$O \
 posixos.$O \
-remote-stub.$O
+remote-stub.$O \
+getloadavg.$O
 
 HFILES= \
 commands.h \
