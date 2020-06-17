@@ -1947,7 +1947,7 @@ main (int argc, char **argv, char **envp)
       define_makeflags (1, 1);
 
       rebuilding_makefiles = 1;
-      status = update_goal_chain (read_makefiles);
+      status = (struct dep *) update_goal_chain (read_makefiles);
       rebuilding_makefiles = 0;
 
       switch (status)
@@ -1994,8 +1994,8 @@ main (int argc, char **argv, char **envp)
                         FILE_TIMESTAMP mtime;
                         /* The update failed and this makefile was not
                            from the MAKEFILES variable, so we care.  */
-                        error (NILF, _("Failed to remake makefile `%s'."),
-                               d->file->name);
+                        OS (error, NILF, _("Failed to remake makefile '%s'."),
+                            d->file->name);
                         mtime = file_mtime_no_search (d->file);
                         any_remade |= (mtime != NONEXISTENT_MTIME
                                        && mtime != makefile_mtimes[i]);
@@ -2010,13 +2010,13 @@ main (int argc, char **argv, char **envp)
                       if (d->changed & RM_INCLUDED)
                         /* An included makefile.  We don't need
                            to die, but we do want to complain.  */
-                        error (NILF,
+                        OS (error, NILF,
                                _("Included makefile `%s' was not found."),
                                dep_name (d));
                       else
                         {
                           /* A normal makefile.  We must die later.  */
-                          error (NILF, _("Makefile `%s' was not found"),
+                          OS (error, NILF, _("Makefile `%s' was not found"),
                                  dep_name (d));
                           any_failed = 1;
                         }
@@ -2084,7 +2084,8 @@ main (int argc, char **argv, char **envp)
 		    bad = 0;
 		}
 	      if (bad)
-		fatal (NILF, _("Couldn't change back to original directory."));
+		O (fatal, NILF,
+                   _("Couldn't change back to original directory."));
 	    }
 
           ++restarts;
@@ -2245,7 +2246,8 @@ main (int argc, char **argv, char **envp)
                 {
                   /* .DEFAULT_GOAL should contain one target. */
                   if (ns->next != 0)
-                    fatal (NILF, _(".DEFAULT_GOAL contains more than one target"));
+                    O (fatal, NILF,
+                       _(".DEFAULT_GOAL contains more than one target"));
 
                   f = enter_file (strcache_add (ns->name));
 
@@ -2268,9 +2270,9 @@ main (int argc, char **argv, char **envp)
   if (!goals)
     {
       if (read_makefiles == 0)
-        fatal (NILF, _("No targets specified and no makefile found"));
+        O (fatal, NILF, _("No targets"));
 
-      fatal (NILF, _("No targets"));
+      O (fatal, NILF, _("No targets specified and no makefile found"));
     }
 
   /* Update the goals.  */
