@@ -78,7 +78,7 @@ static struct hash_table function_table;
 
 char *
 subst_expand (char *o, const char *text, const char *subst, const char *replace,
-              unsigned long slen, unsigned long rlen, int by_word)
+              size_t slen, size_t rlen, int by_word)
 {
   const char *t = text;
   const char *p;
@@ -88,42 +88,42 @@ subst_expand (char *o, const char *text, const char *subst, const char *replace,
       /* The first occurrence of "" in any string is its end.  */
       o = variable_buffer_output (o, t, strlen (t));
       if (rlen > 0)
-	o = variable_buffer_output (o, replace, rlen);
+        o = variable_buffer_output (o, replace, rlen);
       return o;
     }
 
   do
     {
       if (by_word && slen == 0)
-	/* When matching by words, the empty string should match
-	   the end of each word, rather than the end of the whole text.  */
-	p = end_of_token (next_token (t));
+        /* When matching by words, the empty string should match
+           the end of each word, rather than the end of the whole text.  */
+        p = end_of_token (next_token (t));
       else
-	{
-	  p = strstr (t, subst);
-	  if (p == 0)
-	    {
-	      /* No more matches.  Output everything left on the end.  */
-	      o = variable_buffer_output (o, t, strlen (t));
-	      return o;
-	    }
-	}
+        {
+          p = strstr (t, subst);
+          if (p == 0)
+            {
+              /* No more matches.  Output everything left on the end.  */
+              o = variable_buffer_output (o, t, strlen (t));
+              return o;
+            }
+        }
 
       /* Output everything before this occurrence of the string to replace.  */
       if (p > t)
-	o = variable_buffer_output (o, t, p - t);
+        o = variable_buffer_output (o, t, p - t);
 
       /* If we're substituting only by fully matched words,
-	 or only at the ends of words, check that this case qualifies.  */
+         or only at the ends of words, check that this case qualifies.  */
       if (by_word
-          && ((p > text && !isblank ((unsigned char)p[-1]))
-              || (p[slen] != '\0' && !isblank ((unsigned char)p[slen]))))
-	/* Struck out.  Output the rest of the string that is
-	   no longer to be replaced.  */
-	o = variable_buffer_output (o, subst, slen);
+          && ((p > text && !ISSPACE (p[-1]))
+              || ! STOP_SET (p[slen], MAP_SPACE|MAP_NUL)))
+        /* Struck out.  Output the rest of the string that is
+           no longer to be replaced.  */
+        o = variable_buffer_output (o, subst, slen);
       else if (rlen > 0)
-	/* Output the replacement string.  */
-	o = variable_buffer_output (o, replace, rlen);
+        /* Output the replacement string.  */
+        o = variable_buffer_output (o, replace, rlen);
 
       /* Advance T past the string to be replaced.  */
       t = p + slen;
@@ -270,19 +270,19 @@ patsubst_expand (char *o, const char *text, char *pattern, char *replace)
 static const struct function_table_entry *
 lookup_function (const char *s)
 {
+  struct function_table_entry function_table_entry_key;
   const char *e = s;
 
-  while (*e && ( (*e >= 'a' && *e <= 'z') || *e == '-'))
+  while (STOP_SET (*e, MAP_USERFUNC))
     e++;
-  if (*e == '\0' || isblank ((unsigned char) *e))
-    {
-      struct function_table_entry function_table_entry_key;
-      function_table_entry_key.name = s;
-      function_table_entry_key.len = e - s;
 
-      return hash_find_item (&function_table, &function_table_entry_key);
-    }
-  return 0;
+  if (e == s || !STOP_SET(*e, MAP_NUL|MAP_SPACE))
+    return NULL;
+
+  function_table_entry_key.name = s;
+  function_table_entry_key.len = (unsigned char) (e - s);
+
+  return hash_find_item (&function_table, &function_table_entry_key);
 }
 
 
@@ -1425,7 +1425,23 @@ fold_newlines (char *buffer, unsigned int *length)
   *length = last_nonnl - buffer;
 }
 
+void
+shell_completed (int exit_code, int exit_sig)
+{
+  char buf[256];
 
+  shell_function_pid = 0;
+  if (exit_sig == 0 && exit_code == 127)
+    shell_function_completed = -1;
+  else
+    shell_function_completed = 1;
+
+  if (exit_code == 0 && exit_sig > 0)
+    exit_code = 128 + exit_sig;
+
+  sprintf (buf, "%d", exit_code);
+  define_variable_cname (".SHELLSTATUS", buf, o_override, 0);
+}
 
 int shell_function_pid = 0, shell_function_completed;
 
@@ -1587,6 +1603,210 @@ msdos_openpipe (int* pipedes, int *pidp, char *text)
 
 #else
 #ifndef _AMIGA
+
+func_shell_base (char *o, char **argv, int trim_newlines)
+{
+  char *batch_filename = NULL;
+  int errfd;
+#ifdef __MSDOS__
+  FILE *fpipe;
+#endif
+  char **command_argv = NULL;
+  char **envp;
+  int pipedes[2];
+  pid_t pid;
+
+#ifndef __MSDOS__
+#ifdef WINDOWS32
+  /* Reset just_print_flag.  This is needed on Windows when batch files
+     are used to run the commands, because we normally refrain from
+     creating batch files under -n.  */
+  int j_p_f = just_print_flag;
+  just_print_flag = 0;
+#endif
+
+  /* Construct the argument list.  */
+  command_argv = construct_command_argv (argv[0], NULL, NULL, 0,
+                                         &batch_filename);
+  if (command_argv == 0)
+    {
+#ifdef WINDOWS32
+      just_print_flag = j_p_f;
+#endif
+      return o;
+    }
+#endif /* !__MSDOS__ */
+
+  /* Using a target environment for 'shell' loses in cases like:
+       export var = $(shell echo foobie)
+       bad := $(var)
+     because target_environment hits a loop trying to expand $(var) to put it
+     in the environment.  This is even more confusing when 'var' was not
+     explicitly exported, but just appeared in the calling environment.
+
+     See Savannah bug #10593.
+
+  envp = target_environment (NULL);
+  */
+
+  envp = environ;
+
+  /* Set up the output in case the shell writes something.  */
+  output_start ();
+
+  errfd = (output_context && output_context->err >= 0
+           ? output_context->err : FD_STDERR);
+
+#if defined(__MSDOS__)
+  fpipe = msdos_openpipe (pipedes, &pid, argv[0]);
+  if (pipedes[0] < 0)
+    {
+      OS (error, reading_file, "pipe: %s", strerror (errno));
+      pid = -1;
+      goto done;
+    }
+
+#elif defined(WINDOWS32)
+  windows32_openpipe (pipedes, errfd, &pid, command_argv, envp);
+  /* Restore the value of just_print_flag.  */
+  just_print_flag = j_p_f;
+
+  if (pipedes[0] < 0)
+    {
+      /* Open of the pipe failed, mark as failed execution.  */
+      shell_completed (127, 0);
+      OS (error, reading_file, "pipe: %s", strerror (errno));
+      pid = -1;
+      goto done;
+    }
+
+#else
+  if (pipe (pipedes) < 0)
+    {
+      OS (error, reading_file, "pipe: %s", strerror (errno));
+      pid = -1;
+      goto done;
+    }
+
+  /* Close handles that are unnecessary for the child process.  */
+  fd_noinherit (pipedes[1]);
+  fd_noinherit (pipedes[0]);
+
+  {
+    struct childbase child;
+    child.cmd_name = NULL;
+    child.output.syncout = 1;
+    child.output.out = pipedes[1];
+    child.output.err = errfd;
+    child.environment = envp;
+
+    pid = child_execute_job (&child, 1, command_argv);
+
+    free (child.cmd_name);
+  }
+
+  if (pid < 0)
+    {
+      shell_completed (127, 0);
+      goto done;
+    }
+#endif
+
+  {
+    char *buffer;
+    size_t maxlen, i;
+    int cc;
+
+    /* Record the PID for reap_children.  */
+    shell_function_pid = pid;
+#ifndef  __MSDOS__
+    shell_function_completed = 0;
+
+    /* Close the write side of the pipe.  We test for -1, since
+       pipedes[1] is -1 on MS-Windows, and some versions of MS
+       libraries barf when 'close' is called with -1.  */
+    if (pipedes[1] >= 0)
+      close (pipedes[1]);
+#endif
+
+    /* Set up and read from the pipe.  */
+
+    maxlen = 200;
+    buffer = xmalloc (maxlen + 1);
+
+    /* Read from the pipe until it gets EOF.  */
+    for (i = 0; ; i += cc)
+      {
+        if (i == maxlen)
+          {
+            maxlen += 512;
+            buffer = xrealloc (buffer, maxlen + 1);
+          }
+
+        EINTRLOOP (cc, read (pipedes[0], &buffer[i], maxlen - i));
+        if (cc <= 0)
+          break;
+      }
+    buffer[i] = '\0';
+
+    /* Close the read side of the pipe.  */
+#ifdef  __MSDOS__
+    if (fpipe)
+      {
+        int st = pclose (fpipe);
+        shell_completed (st, 0);
+      }
+#else
+    (void) close (pipedes[0]);
+#endif
+
+    /* Loop until child_handler or reap_children()  sets
+       shell_function_completed to the status of our child shell.  */
+    while (shell_function_completed == 0)
+      reap_children (1, 0);
+
+    if (batch_filename)
+      {
+        DB (DB_VERBOSE, (_("Cleaning up temporary batch file %s\n"),
+                         batch_filename));
+        remove (batch_filename);
+        free (batch_filename);
+      }
+    shell_function_pid = 0;
+
+    /* shell_completed() will set shell_function_completed to 1 when the
+       child dies normally, or to -1 if it dies with status 127, which is
+       most likely an exec fail.  */
+
+    if (shell_function_completed == -1)
+      {
+        /* This likely means that the execvp failed, so we should just
+           write the error message in the pipe from the child.  */
+        fputs (buffer, stderr);
+        fflush (stderr);
+      }
+    else
+      {
+        /* The child finished normally.  Replace all newlines in its output
+           with spaces, and put that in the variable output buffer.  */
+        fold_newlines (buffer, &i, trim_newlines);
+        o = variable_buffer_output (o, buffer, i);
+      }
+
+    free (buffer);
+  }
+
+ done:
+  if (command_argv)
+    {
+      /* Free the storage only the child needed.  */
+      free (command_argv[0]);
+      free (command_argv);
+    }
+
+  return o;
+}
+
 static char *
 func_shell (char *o, char **argv, const char *funcname UNUSED)
 {
@@ -2392,6 +2612,44 @@ func_call (char *o, char **argv, const char *funcname UNUSED)
   pop_variable_scope ();
 
   return o + strlen (o);
+}
+
+void
+define_new_function (const floc *flocp, const char *name,
+                     unsigned int min, unsigned int max, unsigned int flags,
+                     gmk_func_ptr func)
+{
+  const char *e = name;
+  struct function_table_entry *ent;
+  size_t len;
+
+  while (STOP_SET (*e, MAP_USERFUNC))
+    e++;
+  len = e - name;
+
+  if (len == 0)
+    O (fatal, flocp, _("Empty function name"));
+  if (*name == '.' || *e != '\0')
+    OS (fatal, flocp, _("Invalid function name: %s"), name);
+  if (len > 255)
+    OS (fatal, flocp, _("Function name too long: %s"), name);
+  if (min > 255)
+    ONS (fatal, flocp,
+         _("Invalid minimum argument count (%u) for function %s"), min, name);
+  if (max > 255 || (max && max < min))
+    ONS (fatal, flocp,
+         _("Invalid maximum argument count (%u) for function %s"), max, name);
+
+  ent = xmalloc (sizeof (struct function_table_entry));
+  ent->name = name;
+  ent->len = (unsigned char) len;
+  ent->minimum_args = (unsigned char) min;
+  ent->maximum_args = (unsigned char) max;
+  ent->expand_args = ANY_SET(flags, GMK_FUNC_NOEXPAND) ? 0 : 1;
+  ent->alloc_fn = 1;
+  ent->fptr.alloc_func_ptr = func;
+
+  hash_insert (&function_table, ent);
 }
 
 void
