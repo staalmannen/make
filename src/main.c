@@ -1947,7 +1947,7 @@ main (int argc, char **argv, char **envp)
       define_makeflags (1, 1);
 
       rebuilding_makefiles = 1;
-      status = (struct dep *) update_goal_chain (read_makefiles);
+      status = update_goal_chain ((struct goaldep *) read_makefiles);
       rebuilding_makefiles = 0;
 
       switch (status)
@@ -2041,7 +2041,7 @@ main (int argc, char **argv, char **envp)
 	  if (print_data_base_flag)
 	    print_data_base ();
 
-	  log_working_directory (0);
+	  (void) log_working_directory (0);
 
           clean_jobserver (0);
 
@@ -2282,7 +2282,7 @@ main (int argc, char **argv, char **envp)
   {
     int status;
 
-    switch (update_goal_chain (goals))
+    switch (update_goal_chain ((struct goaldep *) goals))
     {
       case -1:
         /* Nothing happened.  */
@@ -3147,6 +3147,9 @@ clean_jobserver (int status)
         ++tcnt;
 
       if (tcnt != master_job_slots)
+      /* We didn't write one for ourself, so start at 1.  */
+        unsigned int tokens = 1 + jobserver_acquire_all ();
+      
         ONN (error, NILF,
              "INTERNAL: Exiting with %u jobserver tokens available; should be %u!",
              tokens, master_job_slots);
