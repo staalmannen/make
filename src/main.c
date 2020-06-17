@@ -147,13 +147,13 @@ struct command_switch_old
 
     enum			/* Type of the value.  */
       {
-	flag,			/* Turn int flag on.  */
-	flag_off,		/* Turn int flag off.  */
-	string,			/* One string per switch.  */
-	filename,		/* A string containing a file name.  */
-	positive_int,		/* A positive integer.  */
-	floating,		/* A floating-point number (double).  */
-	ignore			/* Ignored.  */
+	old_flag,			/* Turn int flag on.  */
+	old_flag_off,		/* Turn int flag off.  */
+	old_string,			/* One string per switch.  */
+	old_filename,		/* A string containing a file name.  */
+	old_positive_int,		/* A positive integer.  */
+	old_floating,		/* A floating-point number (double).  */
+	old_ignore			/* Ignored.  */
       } type;
 
     void *value_ptr;	/* Pointer to the value-holding variable.  */
