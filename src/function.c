@@ -688,7 +688,7 @@ func_firstword (char *o, char **argv, const char *funcname UNUSED)
 static char *
 func_lastword (char *o, char **argv, const char *funcname UNUSED)
 {
-  unsigned int i;
+  size_t i;
   const char *words = argv[0];    /* Use a temp variable for find_next_token */
   const char *p = NULL;
   const char *t;
@@ -1106,7 +1106,7 @@ func_error (char *o, char **argv, const char *funcname)
       OS (fatal, reading_file, "%s", msg);
 
     case 'w':
-      error (reading_file, "%s", msg);
+      OS (error, reading_file, "%s", msg);
       break;
 
     case 'i':
@@ -1376,7 +1376,7 @@ func_eval (char *o, char **argv, const char *funcname UNUSED)
 
   install_variable_buffer (&buf, &len);
 
-  eval_buffer (argv[0]);
+  eval_buffer (argv[0], NULL);
 
   restore_variable_buffer (buf, len);
 
@@ -1670,7 +1670,7 @@ func_shell (char *o, char **argv, const char *funcname UNUSED)
   if (pid < 0)
     perror_with_name (error_prefix, "fork");
   else if (pid == 0)
-    child_execute_job (0, pipedes[1], command_argv, envp);
+    child_execute_job (0, pipedes[1], command_argv);
   else
 # endif
 #endif
@@ -2151,8 +2151,8 @@ expand_builtin_function (char *o, int argc, char **argv,
                          const struct function_table_entry *entry_p)
 {
   if (argc < (int)entry_p->minimum_args)
-    fatal (*expanding_var,
-           _("insufficient number of arguments (%d) to function `%s'"),
+    fatal (*expanding_var, strlen (entry_p->name),
+           _("insufficient number of arguments (%d) to function '%s'"),
            argc, entry_p->name);
 
   /* I suppose technically some function could do something with no
@@ -2163,8 +2163,8 @@ expand_builtin_function (char *o, int argc, char **argv,
     return o;
 
   if (!entry_p->func_ptr)
-    fatal (*expanding_var,
-           _("unimplemented on this platform: function `%s'"), entry_p->name);
+    OS (fatal, *expanding_var,
+        _("unimplemented on this platform: function '%s'"), entry_p->name);
 
   return entry_p->func_ptr (o, argv, entry_p->name);
 }
@@ -2213,9 +2213,9 @@ handle_function (char **op, const char **stringp)
       break;
 
   if (count >= 0)
-    fatal (*expanding_var,
-	   _("unterminated call to function `%s': missing `%c'"),
-	   entry_p->name, closeparen);
+    fatal (*expanding_var, strlen (entry_p->name),
+           _("unterminated call to function '%s': missing '%c'"),
+           entry_p->name, closeparen);
 
   *stringp = end;
 
