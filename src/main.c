@@ -115,30 +115,29 @@ static void initialize_global_hash_tables (void);
 
 struct command_switch
   {
-    int c;                      /* The switch character.  */
+    int c;			/* The switch character.  */
 
-    enum                        /* Type of the value.  */
+    enum			/* Type of the value.  */
       {
-        flag,                   /* Turn int flag on.  */
-        flag_off,               /* Turn int flag off.  */
-        string,                 /* One string per invocation.  */
-        strlist,                /* One string per switch.  */
-        filename,               /* A string containing a file name.  */
-        positive_int,           /* A positive integer.  */
-        floating,               /* A floating-point number (double).  */
-        ignore                  /* Ignored.  */
+	flag,			/* Turn int flag on.  */
+	flag_off,		/* Turn int flag off.  */
+	string,			/* One string per switch.  */
+	filename,		/* A string containing a file name.  */
+	positive_int,		/* A positive integer.  */
+	floating,		/* A floating-point number (double).  */
+	ignore			/* Ignored.  */
       } type;
 
-    void *value_ptr;    /* Pointer to the value-holding variable.  */
+    void *value_ptr;	/* Pointer to the value-holding variable.  */
 
-    unsigned int env:1;         /* Can come from MAKEFLAGS.  */
-    unsigned int toenv:1;       /* Should be put in MAKEFLAGS.  */
-    unsigned int no_makefile:1; /* Don't propagate when remaking makefiles.  */
+    unsigned int env;		/* Can come from MAKEFLAGS.  */
+    unsigned int toenv;	/* Should be put in MAKEFLAGS.  */
+    unsigned int no_makefile;	/* Don't propagate when remaking makefiles.  */
 
-    const void *noarg_value;    /* Pointer to value used if no arg given.  */
-    const void *default_value;  /* Pointer to default value.  */
+    const void *noarg_value;	/* Pointer to value used if no arg given.  */
+    const void *default_value;	/* Pointer to default value.  */
 
-    const char *long_name;      /* Long option name.  */
+    char *long_name;		/* Long option name.  */
   };
 
 /* True if C is a switch value that corresponds to a short option.  */
@@ -415,54 +414,53 @@ static const struct command_switch switches[] =
   {
     { 'b', ignore, 0, 0, 0, 0, 0, 0, 0 },
     { 'B', flag, &always_make_set, 1, 1, 0, 0, 0, "always-make" },
+    { 'C', filename, &directories, 0, 0, 0, 0, 0, "directory" },
     { 'd', flag, &debug_flag, 1, 1, 0, 0, 0, 0 },
+    { CHAR_MAX+1, string, &db_flags, 1, 1, 0, "basic", 0, "debug" },
+#ifdef WINDOWS32
+    { 'D', flag, &suspend_flag, 1, 1, 0, 0, 0, "suspend-for-debug" },
+#endif
     { 'e', flag, &env_overrides, 1, 1, 0, 0, 0, "environment-overrides", },
-    { 'E', strlist, &eval_strings, 1, 0, 0, 0, 0, "eval" },
+    { 'f', filename, &makefiles, 0, 0, 0, 0, 0, "file" },
     { 'h', flag, &print_usage_flag, 0, 0, 0, 0, 0, "help" },
     { 'i', flag, &ignore_errors_flag, 1, 1, 0, 0, 0, "ignore-errors" },
+    { 'I', filename, &include_directories, 1, 1, 0, 0, 0,
+      "include-dir" },
+    { 'j', positive_int, &job_slots, 1, 1, 0, &inf_jobs, &default_job_slots,
+      "jobs" },
+    { CHAR_MAX+2, string, &jobserver_fds, 1, 1, 0, 0, 0, "jobserver-fds" },
     { 'k', flag, &keep_going_flag, 1, 1, 0, 0, &default_keep_going_flag,
       "keep-going" },
+#ifndef NO_FLOAT
+    { 'l', floating, &max_load_average, 1, 1, 0, &default_load_average,
+      &default_load_average, "load-average" },
+#else
+    { 'l', positive_int, &max_load_average, 1, 1, 0, &default_load_average,
+      &default_load_average, "load-average" },
+#endif
     { 'L', flag, &check_symlink_flag, 1, 1, 0, 0, 0, "check-symlink-times" },
     { 'm', ignore, 0, 0, 0, 0, 0, 0, 0 },
     { 'n', flag, &just_print_flag, 1, 1, 1, 0, 0, "just-print" },
+    { 'o', filename, &old_files, 0, 0, 0, 0, 0, "old-file" },
     { 'p', flag, &print_data_base_flag, 1, 1, 0, 0, 0, "print-data-base" },
     { 'q', flag, &question_flag, 1, 1, 1, 0, 0, "question" },
     { 'r', flag, &no_builtin_rules_flag, 1, 1, 0, 0, 0, "no-builtin-rules" },
     { 'R', flag, &no_builtin_variables_flag, 1, 1, 0, 0, 0,
       "no-builtin-variables" },
-    { 's', flag, &silent_flag, 1, 1, 0, 0, &default_silent_flag, "silent" },
+    { 's', flag, &silent_flag, 1, 1, 0, 0, 0, "silent" },
     { 'S', flag_off, &keep_going_flag, 1, 1, 0, 0, &default_keep_going_flag,
       "no-keep-going" },
     { 't', flag, &touch_flag, 1, 1, 1, 0, 0, "touch" },
     { 'v', flag, &print_version_flag, 1, 1, 0, 0, 0, "version" },
-    { 'w', flag, &print_directory_flag, 1, 1, 0, 0,
-      &default_print_directory_flag, "print-directory" },
-
-    /* These options take arguments.  */
-    { 'C', filename, &directories, 0, 0, 0, 0, 0, "directory" },
-    { 'f', filename, &makefiles, 0, 0, 0, 0, 0, "file" },
-    { 'I', filename, &include_directories, 1, 1, 0, 0, 0,
-      "include-dir" },
-    { 'j', positive_int, &arg_job_slots, 1, 1, 0, &inf_jobs, &default_job_slots,
-      "jobs" },
-    { 'l', floating, &max_load_average, 1, 1, 0, &default_load_average,
-      &default_load_average, "load-average" },
-    { 'o', filename, &old_files, 0, 0, 0, 0, 0, "old-file" },
-    { 'O', string, &output_sync_option, 1, 1, 0, "target", 0, "output-sync" },
+    { CHAR_MAX+3, string, &verbosity_flags, 1, 1, 0, 0, 0,
+      "verbosity" },
+    { 'w', flag, &print_directory_flag, 1, 1, 0, 0, 0, "print-directory" },
+    { CHAR_MAX+4, flag, &inhibit_print_directory_flag, 1, 1, 0, 0, 0,
+      "no-print-directory" },
     { 'W', filename, &new_files, 0, 0, 0, 0, 0, "what-if" },
-
-    /* These are long-style options.  */
-    { CHAR_MAX+1, strlist, &db_flags, 1, 1, 0, "basic", 0, "debug" },
-    { CHAR_MAX+2, string, &jobserver_auth, 1, 1, 0, 0, 0, "jobserver-auth" },
-    { CHAR_MAX+3, flag, &trace_flag, 1, 1, 0, 0, 0, "trace" },
-    { CHAR_MAX+4, flag_off, &print_directory_flag, 1, 1, 0, 0,
-      &default_print_directory_flag, "no-print-directory" },
     { CHAR_MAX+5, flag, &warn_undefined_variables_flag, 1, 1, 0, 0, 0,
       "warn-undefined-variables" },
-    { CHAR_MAX+7, string, &sync_mutex, 1, 1, 0, 0, 0, "sync-mutex" },
-    { CHAR_MAX+8, flag_off, &silent_flag, 1, 1, 0, 0, &default_silent_flag,
-      "no-silent" },
-    { CHAR_MAX+9, string, &jobserver_auth, 1, 0, 0, 0, 0, "jobserver-fds" },
+    { CHAR_MAX+6, string, &eval_strings, 1, 0, 0, 0, 0, "eval" },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
   };
 
