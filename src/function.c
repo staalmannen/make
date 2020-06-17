@@ -675,7 +675,7 @@ func_subst (char *o, char **argv, const char *funcname UNUSED)
 static char *
 func_firstword (char *o, char **argv, const char *funcname UNUSED)
 {
-  unsigned int i;
+  size_t i;
   const char *words = argv[0];    /* Use a temp variable for find_next_token */
   const char *p = find_next_token (&words, &i);
 
@@ -709,7 +709,7 @@ func_words (char *o, char **argv, const char *funcname UNUSED)
   const char *word_iterator = argv[0];
   char buf[20];
 
-  while (find_next_token (&word_iterator, (unsigned int *) 0) != 0)
+  while (find_next_token (&word_iterator, (size_t) 0) != 0)
     ++i;
 
   sprintf (buf, "%d", i);
@@ -745,7 +745,7 @@ check_numeric (const char *s, const char *msg)
       break;
 
   if (s <= end || end - beg < 0)
-    fatal (*expanding_var, "%s: '%s'", msg, beg);
+    OSS (fatal, *expanding_var, "%s: '%s'", msg, beg);
 }
 
 
@@ -762,8 +762,8 @@ func_word (char *o, char **argv, const char *funcname UNUSED)
   i = atoi (argv[0]);
 
   if (i == 0)
-    fatal (*expanding_var,
-           _("first argument to `word' function must be greater than 0"));
+    O (fatal, *expanding_var,
+       _("first argument to 'word' function must be greater than 0"));
 
   end_p = argv[1];
   while ((p = find_next_token (&end_p, 0)) != 0)
@@ -789,8 +789,8 @@ func_wordlist (char *o, char **argv, const char *funcname UNUSED)
 
   start = atoi (argv[0]);
   if (start < 1)
-    fatal (*expanding_var,
-           "invalid first argument to `wordlist' function: `%d'", start);
+    ON (fatal, *expanding_var,
+        "invalid first argument to 'wordlist' function: '%d'", start);
 
   count = atoi (argv[1]) - start + 1;
 
@@ -1103,7 +1103,7 @@ func_error (char *o, char **argv, const char *funcname)
 
   switch (*funcname) {
     case 'e':
-      fatal (reading_file, "%s", msg);
+      OS (fatal, reading_file, "%s", msg);
 
     case 'w':
       error (reading_file, "%s", msg);
@@ -1115,8 +1115,8 @@ func_error (char *o, char **argv, const char *funcname)
       break;
 
     default:
-      fatal (*expanding_var, "Internal error: func_error: '%s'", funcname);
-  }
+      OS (fatal, *expanding_var, "Internal error: func_error: '%s'", funcname);
+    }
 
   /* The warning function expands to the empty string.  */
   return o;
