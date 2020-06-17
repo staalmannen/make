@@ -18,7 +18,8 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* find: LOCALEDIR "argv = alloca"  Plan9*/
 
-#include "make.h"
+#include "makeint.h"
+#include "gnumake.h"
 #include "dep.h"
 #include "filedef.h"
 #include "variable.h"
