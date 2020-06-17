@@ -77,6 +77,7 @@ struct file
       } update_status ENUM_BITFIELD (2);
 #else
       short int update_status;
+      short int us_success = 0;
 #endif
     enum cmd_state              /* State of commands.  ORDER IS IMPORTANT!  */
       {
