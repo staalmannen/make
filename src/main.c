@@ -22,6 +22,8 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "gnumake.h"
 #include "dep.h"
 #include "filedef.h"
+#undef update_status
+short int update_status;
 #include "variable.h"
 #include "job.h"
 #include "commands.h"
@@ -1553,15 +1555,14 @@ main (int argc, char **argv, char **envp)
 
 	    /* Make sure the temporary file will not be remade.  */
             {
-            const char **p;
-            for (p = old_files->list; *p != 0; ++p)
-                {
-                struct file *f = enter_file (*p);
-                f->last_mtime = f->mtime_before_update = OLD_MTIME;
-                f->updated = 1;
-                f->update_status = us_success;
-                f->command_state = cs_finished;
-                }
+              struct file *f = enter_file (strcache_add (stdin_nm));
+              f->updated = 1;
+              f->update_status = us_success;
+              f->command_state = cs_finished;
+              /* Can't be intermediate, or it'll be removed too early for
+                 make re-exec.  */
+              f->intermediate = 0;
+              f->dontcare = 0;
             }
 	  }
     }
